@@ -1,0 +1,31 @@
+[project]
+name = "mash-pilot"
+version = "0.1.0"
+description = "Mash Pilot — a multi-agent codebase guide for the mashpy project."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Proprietary"}
+authors = [{ name = "imsid" }]
+
+dependencies = [
+  "mashpy>=0.4.2",
+  "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+pilot = "pilot.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "pyinstaller>=6.0",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["pilot*"]
+
+[tool.setuptools.package-data]
+"pilot" = ["skills/*.md"]

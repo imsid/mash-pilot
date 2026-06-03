@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: pilot
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: MASH_DATABASE_URL
+        fromDatabase:
+          name: pilot-db
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PILOT_WORKSPACE_ROOT
+        value: /opt/mashpy
+      - key: MASH_HOST_APP
+        value: pilot.spec:build_host
+
+databases:
+  - name: pilot-db
+    plan: starter
+    databaseName: mash-pilot
+    user: mash
