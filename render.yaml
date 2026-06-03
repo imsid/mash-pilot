@@ -19,5 +19,5 @@ services:
 databases:
   - name: pilot-db
     plan: starter
-    databaseName: mash-pilot
+    databaseName: mash_pilot
     user: mash
