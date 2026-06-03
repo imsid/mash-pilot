@@ -246,8 +246,12 @@ Pilot agents have the source tree to operate on.
 
 ### Auto-Deploy
 
-Every push to the connected branch triggers a redeploy. The Docker build runs
-`git clone --depth 1` of mashpy, so the agents always get the latest source.
+Every push to the `mash-pilot` repo triggers a redeploy. The Docker build
+clones mashpy `main` at build time, so the agents get a fresh copy of the
+mashpy source on each mash-pilot deploy.
+
+To also redeploy when mashpy changes, add a [Render Deploy Hook](https://docs.render.com/deploy-hooks)
+and trigger it from a GitHub Actions workflow in the mashpy repo.
 
 ### Connect to the Render Instance
 
