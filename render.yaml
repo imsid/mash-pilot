@@ -18,6 +18,6 @@ services:
 
 databases:
   - name: pilot-db
-    plan: basic_256mb
+    plan: basic-256mb
     databaseName: mash_pilot
     user: mash
