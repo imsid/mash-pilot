@@ -28,4 +28,4 @@ build-backend = "setuptools.build_meta"
 include = ["pilot*"]
 
 [tool.setuptools.package-data]
-"pilot" = ["skills/*.md"]
+"pilot" = ["skills/*.md", "skills/*/SKILL.md"]

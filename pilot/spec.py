@@ -443,6 +443,9 @@ class WorkflowCopilotSpec(_BaseCopilotSpec):
         )
 
 
+PILOT_SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+
+
 class PilotSpec(_BaseCopilotSpec):
     """Primary pilot specialized in Mash codebase."""
 
@@ -455,6 +458,12 @@ class PilotSpec(_BaseCopilotSpec):
         tools.register(UpdateDocsTool(workspace_root=str(self.workspace_root)))
         tools.register(AskUserTool())
         return tools
+
+    def build_skills(self) -> SkillRegistry:
+        registry = SkillRegistry()
+        for skill in registry.get_custom_skills(PILOT_SKILLS_DIR):
+            registry.register(skill)
+        return registry
 
     def build_system_prompt(self) -> list[dict[str, Any]]:
         blocks: list[dict[str, Any]] = [
@@ -503,7 +512,7 @@ class PilotSpec(_BaseCopilotSpec):
         return AgentConfig(
             app_id=PILOT_AGENT_ID,
             system_prompt=self.build_system_prompt(),
-            skills_enabled=False,
+            skills_enabled=True,
             temperature=0.2,
         )
 
