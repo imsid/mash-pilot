@@ -7,13 +7,6 @@ project, built with the [Mash](https://github.com/imsid/mashpy) SDK.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/imsid/mash-pilot/main/install.sh | sh
-pilot repl --api-base-url https://pilot.onrender.com
-```
-
-Or set the URL once:
-
-```bash
-export PILOT_API_BASE_URL=https://pilot.onrender.com
 pilot repl
 ```
 
@@ -44,6 +37,31 @@ agent code from a description.
 > I need an agent that connects to my MCP server at localhost:3000 and uses Gemini as the LLM.
 ```
 
+### Generate Changelogs
+
+Pilot can generate changelogs from recent mashpy commits using the `/changelog`
+REPL command. This is powered by Mash's **dynamic skills and workflows** —
+the skill and workflow are registered on the fly when the command runs, showing
+how Mash agents can extend their own capabilities at runtime.
+
+```text
+> /changelog        # last 5 commits
+> /changelog 20     # last 20 commits
+```
+
+### Quiz Me
+
+Test your understanding of Mash with the `/quiz` REPL command. Pilot generates
+3 questions of increasing complexity about Mash internals and quizzes you
+interactively. Ask follow-up questions at any point — the goal is learning,
+not scoring. This is powered by a dedicated **workflow agent** registered at
+startup, demonstrating how Mash composes workflow agents alongside the primary
+agent and its copilots.
+
+```text
+> /quiz
+```
+
 ## Agents
 
 | Agent | Scope |
@@ -67,13 +85,14 @@ spans modules, it synthesizes answers from multiple copilots.
 | `/history [N]` | Show last N turns |
 | `/clear` | Clear session history |
 | `/changelog [N]` | Generate changelog from last N commits (default: 5) |
+| `/quiz` | Interactive quiz about Mash internals |
 
 ## Telemetry
 
 The host serves a telemetry UI for real-time visibility into agent execution:
 
 - Local: [http://127.0.0.1:8000/telemetry](http://127.0.0.1:8000/telemetry)
-- Render: `https://pilot.onrender.com/telemetry`
+- Render: `https://pilot-tk3b.onrender.com/telemetry`
 
 ## Development & Deployment
 

@@ -13,6 +13,10 @@ services:
         sync: false
       - key: PILOT_WORKSPACE_ROOT
         value: /opt/mashpy
+      - key: GITHUB_MCP_URL
+        value: https://api.githubcopilot.com/mcp/
+      - key: GITHUB_MCP_PAT
+        sync: false
       - key: MASH_HOST_APP
         value: pilot.spec:build_host
 

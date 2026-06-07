@@ -11,7 +11,7 @@ CHANGELOG_WORKFLOW_ID = "pilot-changelog"
 CHANGELOG_TASK_ID = "scan-recent-commits"
 CHANGELOG_SKILL_NAME = "workflow:pilot-changelog:v1"
 DEFAULT_CHANGELOG_COMMIT_COUNT = 5
-CHANGELOG_SKILL_PATH = Path(__file__).resolve().parent / "skills" / "changelog.md"
+CHANGELOG_SKILL_PATH = Path(__file__).resolve().parent.parent / "skills" / "changelog" / "SKILL.md"
 CHANGELOG_STRUCTURED_OUTPUT = {
     "title": "PilotChangelogWorkflowOutput",
     "type": "object",

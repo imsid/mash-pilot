@@ -10,11 +10,12 @@ from mash.cli.client import MashHostClient
 from mash.cli.render import RichRenderer
 from mash.cli.shell import MashRemoteShell, ShellTarget
 
-from .changelog import register_changelog_command
+from .workflows.changelog import register_changelog_command
+from .workflows.quiz import register_quiz_command
 
 PILOT_DEFAULT_API_BASE_URL = os.environ.get(
     "PILOT_API_BASE_URL",
-    "http://127.0.0.1:8000",
+    "https://pilot-tk3b.onrender.com",
 )
 
 
@@ -27,7 +28,9 @@ def _resolve_connection(args: argparse.Namespace) -> tuple[str, str | None, str 
     api_key = args.api_key or os.environ.get("MASH_API_KEY") or None
     agent_id = args.agent
     if not base_url:
-        raise ValueError("API base URL is required. Use --api-base-url or PILOT_API_BASE_URL.")
+        raise ValueError(
+            "API base URL is required. Use --api-base-url or PILOT_API_BASE_URL."
+        )
     return base_url, api_key, agent_id
 
 
@@ -75,6 +78,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 shell = MashRemoteShell(client, target)
                 register_changelog_command(shell)
+                register_quiz_command(shell)
                 shell.run()
                 return 0
             finally:

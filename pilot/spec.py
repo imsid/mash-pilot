@@ -19,12 +19,14 @@ from mash.runtime import (
     HostBuilder,
     SubAgentMetadata,
 )
+from mash.mcp.types import MCPServerConfig
 from mash.skills.registry import SkillRegistry
 from mash.tools.ask_user import AskUserTool
 from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
 from .prompt import build_base_prompt, build_repo_context
+from .workflows.quiz import QuizAgentSpec, build_quiz_workflow_spec
 from .tools import UpdateDocsTool
 
 APP_NAME = "Mash Pilot"
@@ -46,6 +48,7 @@ PILOT_DOC_ROOTS = (
 )
 PILOT_EXTRA_DOC_PATHS = (
     "README.md",
+    "HOW_TO_DEPLOY.md",
     "src/mash/AGENTS.md",
     "docs/rfcs/host-to-agent-protocol.md",
 )
@@ -110,6 +113,9 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+GITHUB_MCP_URL = os.getenv("GITHUB_MCP_URL") or "https://api.githubcopilot.com/mcp/"
+GITHUB_MCP_PAT = os.getenv("GITHUB_MCP_PAT")
+GITHUB_MCP_CONNECTION_NAME = "github"
 
 
 class _BaseCopilotSpec(AgentSpec):
@@ -459,6 +465,24 @@ class PilotSpec(_BaseCopilotSpec):
         tools.register(AskUserTool())
         return tools
 
+    def build_mcp_servers(self) -> list[MCPServerConfig]:
+        github_mcp_url = os.getenv("GITHUB_MCP_URL") or GITHUB_MCP_URL
+        github_mcp_pat = os.getenv("GITHUB_MCP_PAT") or GITHUB_MCP_PAT
+        if not github_mcp_url or not github_mcp_pat:
+            return []
+        return [
+            MCPServerConfig(
+                name=GITHUB_MCP_CONNECTION_NAME,
+                url=github_mcp_url,
+                description="GitHub MCP server for mashpy repository inspection",
+                headers={"Authorization": f"Bearer {github_mcp_pat}"},
+                allowed_tools=[
+                    "list_commits",
+                    "get_commit",
+                ],
+            )
+        ]
+
     def build_skills(self) -> SkillRegistry:
         registry = SkillRegistry()
         for skill in registry.get_custom_skills(PILOT_SKILLS_DIR):
@@ -660,7 +684,7 @@ def build_host(workspace_root: Path | None = None) -> AgentHost:
         workspace_root
         or Path(os.environ.get("PILOT_WORKSPACE_ROOT", "."))
     ).resolve()
-    return (
+    host = (
         HostBuilder()
         .primary(create_pilot_spec(workspace_root=str(resolved_workspace_root)))
         .subagent(
@@ -686,6 +710,10 @@ def build_host(workspace_root: Path | None = None) -> AgentHost:
         .enable_masher()
         .build()
     )
+    quiz_spec = QuizAgentSpec(workspace_root=resolved_workspace_root)
+    host.register_workflow_agent(quiz_spec)
+    host.register_workflow(build_quiz_workflow_spec(quiz_spec))
+    return host
 
 
 def main(argv: Sequence[str] | None = None) -> int:
