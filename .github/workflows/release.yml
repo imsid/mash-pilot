@@ -34,7 +34,9 @@ jobs:
 
       - name: Build binary
         run: |
-          pyinstaller --onefile --name pilot --clean entry.py
+          pyinstaller --onefile --name pilot --clean \
+            --add-data "pilot/skills:pilot/skills" \
+            entry.py
 
       - name: Rename artifact
         run: mv dist/pilot dist/${{ matrix.artifact }}

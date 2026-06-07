@@ -115,12 +115,28 @@ traffic.
 Tag a version to build and publish standalone CLI binaries:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-GitHub Actions builds `pilot` binaries for macOS (arm64 + x86_64) and Linux
-(x86_64) via PyInstaller and uploads them to a GitHub Release.
+GitHub Actions builds `pilot` binaries for macOS (arm64) and Linux (x86_64)
+via PyInstaller and uploads them to a GitHub Release.
+
+### Re-tagging a Release
+
+If you need to rebuild a release (e.g., after fixing the build config), commit
+your changes and push to `main` first, then delete the old tag/release and
+re-tag at the new commit:
+
+```bash
+git add -A && git commit -m "fix release build"
+git push origin main
+git tag -d v0.2.0
+git push origin :refs/tags/v0.2.0
+gh release delete v0.2.0 --yes
+git tag v0.2.0
+git push origin v0.2.0
+```
 
 The install script (`install.sh`) always fetches the latest release:
 
