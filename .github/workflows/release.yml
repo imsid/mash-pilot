@@ -15,8 +15,6 @@ jobs:
         include:
           - os: macos-latest
             artifact: pilot-darwin-arm64
-          - os: macos-13
-            artifact: pilot-darwin-x86_64
           - os: ubuntu-latest
             artifact: pilot-linux-x86_64
 
