@@ -40,11 +40,19 @@ Create a `.env` file in the repo root:
 MASH_DATABASE_URL=postgresql://mash:mash@127.0.0.1:5433/mash_pilot
 ANTHROPIC_API_KEY=sk-ant-...
 PILOT_WORKSPACE_ROOT=/path/to/mashpy
+GITHUB_MCP_PAT=ghp_...
 ```
 
 `PILOT_WORKSPACE_ROOT` must point at a local clone of the mashpy repository.
 The Pilot agents operate on this source tree — reading READMEs, running bash
 commands, and inspecting git history.
+
+`GITHUB_MCP_PAT` is a GitHub personal access token used to connect to the
+GitHub MCP server. The pilot agent uses it to inspect commits and history on
+the mashpy repository. Generate one at
+**Settings → Developer settings → Personal access tokens** with `repo` scope.
+If omitted, the MCP server is skipped and the agent loses access to GitHub
+tools like `list_commits` and `get_commit`.
 
 Do not quote values in `.env` — `python-dotenv` treats quotes as literal
 characters.
