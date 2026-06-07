@@ -3,7 +3,6 @@ services:
     name: pilot
     runtime: docker
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /api/v1/health
     envVars:
       - key: MASH_DATABASE_URL
         fromDatabase:
