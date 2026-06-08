@@ -8,26 +8,25 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from dotenv import load_dotenv
-
 from mash.api import MashHostConfig, run_host
 from mash.core.config import AgentConfig
 from mash.core.llm import LLMProvider
 from mash.core.llm.anthropic import AnthropicProvider
+from mash.mcp.types import MCPServerConfig
 from mash.runtime import (
     AgentHost,
     AgentSpec,
     HostBuilder,
     SubAgentMetadata,
 )
-from mash.mcp.types import MCPServerConfig
 from mash.skills.registry import SkillRegistry
 from mash.tools.ask_user import AskUserTool
 from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
 from .prompt import build_base_prompt, build_repo_context
-from .workflows.quiz import QuizAgentSpec, build_quiz_workflow_spec
 from .tools import UpdateDocsTool
+from .workflows.quiz import QuizAgentSpec, build_quiz_workflow_spec
 
 APP_NAME = "Mash Pilot"
 PILOT_AGENT_ID = "pilot"
@@ -48,8 +47,9 @@ PILOT_DOC_ROOTS = (
 )
 PILOT_EXTRA_DOC_PATHS = (
     "README.md",
-    "HOW_TO_DEPLOY.md",
     "src/mash/AGENTS.md",
+    "docs/building-agent-clis.md",
+    "docs/how-to-deploy.md",
     "docs/rfcs/host-to-agent-protocol.md",
 )
 
@@ -200,7 +200,7 @@ class CliCopilotSpec(_BaseCopilotSpec):
             system_prompt=self.build_system_prompt(),
             skills_enabled=False,
             conversation_history_turns=0,
-            max_steps=30,
+            max_steps=50,
             temperature=0.2,
         )
 
@@ -261,7 +261,7 @@ class ApiCopilotSpec(_BaseCopilotSpec):
             system_prompt=self.build_system_prompt(),
             skills_enabled=False,
             conversation_history_turns=0,
-            max_steps=30,
+            max_steps=50,
             temperature=0.2,
         )
 
@@ -322,7 +322,7 @@ class McpCopilotSpec(_BaseCopilotSpec):
             system_prompt=self.build_system_prompt(),
             skills_enabled=False,
             conversation_history_turns=0,
-            max_steps=30,
+            max_steps=50,
             temperature=0.2,
         )
 
@@ -383,7 +383,7 @@ class RuntimeCopilotSpec(_BaseCopilotSpec):
             system_prompt=self.build_system_prompt(),
             skills_enabled=False,
             conversation_history_turns=0,
-            max_steps=30,
+            max_steps=50,
             temperature=0.2,
         )
 
@@ -444,7 +444,7 @@ class WorkflowCopilotSpec(_BaseCopilotSpec):
             system_prompt=self.build_system_prompt(),
             skills_enabled=False,
             conversation_history_turns=0,
-            max_steps=30,
+            max_steps=50,
             temperature=0.2,
         )
 
@@ -681,8 +681,7 @@ def create_workflow_copilot_spec(*, workspace_root: str) -> WorkflowCopilotSpec:
 def build_host(workspace_root: Path | None = None) -> AgentHost:
     """Build the Mash Pilot Agent host."""
     resolved_workspace_root = (
-        workspace_root
-        or Path(os.environ.get("PILOT_WORKSPACE_ROOT", "."))
+        workspace_root or Path(os.environ.get("PILOT_WORKSPACE_ROOT", "."))
     ).resolve()
     host = (
         HostBuilder()

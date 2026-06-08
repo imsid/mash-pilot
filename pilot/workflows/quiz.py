@@ -133,9 +133,7 @@ class QuizAgentSpec(AgentSpec):
                 app_id=QUIZ_AGENT_ID,
                 model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
             )
-        raise RuntimeError(
-            "Quiz agent requires ANTHROPIC_API_KEY or OPENAI_API_KEY."
-        )
+        raise RuntimeError("Quiz agent requires ANTHROPIC_API_KEY or OPENAI_API_KEY.")
 
     def build_system_prompt(self) -> list[dict[str, Any]]:
         blocks: list[dict[str, Any]] = [
@@ -168,7 +166,7 @@ class QuizAgentSpec(AgentSpec):
             app_id=QUIZ_AGENT_ID,
             system_prompt=self.build_system_prompt(),
             skills_enabled=True,
-            max_steps=15,
+            max_steps=30,
         )
 
     def enable_runtime_tools(self) -> bool:
@@ -204,6 +202,7 @@ def register_quiz_command(shell: Any) -> None:
             ctx.renderer.info(f"Status: {run.get('status') or ''}")
             return
 
+        streamed_response_text: str | None = None
         try:
             for event in ctx.client.stream_workflow_run(QUIZ_WORKFLOW_ID, run_id):
                 event_name = str(event.get("event") or "")
@@ -219,6 +218,13 @@ def register_quiz_command(shell: Any) -> None:
                         trace_label="Quiz",
                         agent_id=task_agent_id or None,
                     )
+                    if task_agent_id:
+                        streamed_text = shell.extract_streamed_response_text(
+                            payload,
+                            agent_id=task_agent_id,
+                        )
+                        if streamed_text:
+                            streamed_response_text = streamed_text
                     continue
 
                 if event_name == "request.interaction.create":
@@ -231,6 +237,14 @@ def register_quiz_command(shell: Any) -> None:
                     continue
 
                 if event_name == "request.completed":
+                    shell.chain_renderer.finish_trace()
+                    response_payload = payload.get("response")
+                    if isinstance(response_payload, dict):
+                        text = str(response_payload.get("text") or "")
+                    else:
+                        text = str(payload.get("text") or "")
+                    if text and text != streamed_response_text:
+                        ctx.renderer.markdown(text)
                     break
 
                 if event_name == "request.error":

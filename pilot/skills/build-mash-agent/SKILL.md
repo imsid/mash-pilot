@@ -168,7 +168,7 @@ API keys are read from environment variables: `ANTHROPIC_API_KEY`,
 AgentConfig(
     app_id="my-agent",
     system_prompt="You are ...",          # required — defines agent personality
-    max_steps=30,                         # max tool-use loops per request
+    max_steps=50,                         # max tool-use loops per request
     max_tokens=4096,                      # LLM output token cap
     temperature=1.0,                      # sampling temperature
     skills_enabled=False,                 # set True to enable Skill meta-tool

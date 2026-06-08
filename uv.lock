@@ -401,7 +401,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371 }
 wheels = [
@@ -767,7 +767,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mashpy", specifier = ">=0.4.2" },
+    { name = "mashpy", specifier = ">=0.4.6" },
     { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
@@ -775,7 +775,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "mashpy"
-version = "0.4.2"
+version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiosqlite" },
@@ -796,9 +796,9 @@ dependencies = [
     { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f9/8b/5b61e2e82d2f2d25fd83238bb85c974d4777e88266488e101ba5e40e5115/mashpy-0.4.2.tar.gz", hash = "sha256:a1717426e08d6652d9c9460d5f6d70216b05793d2527d61b5d3716d74a295cdc", size = 212986 }
+sdist = { url = "https://files.pythonhosted.org/packages/eb/b2/08c7857b8e7617374d45b672d7d5acaf89e422f0b8863f370ee42dfdfcec/mashpy-0.4.6.tar.gz", hash = "sha256:3de9611b6d016e7ede4e54bf14dec955e92337ed4b713f394d771125128ed28d", size = 205258 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/bc/a3da4d7f59f1e8799bd94d6a541b976a0e65c963640dc2ea0989fad26ee0/mashpy-0.4.2-py3-none-any.whl", hash = "sha256:965d20f3e8a818116c49089e23b7db32a56c1b843782053323647618db391622", size = 259577 },
+    { url = "https://files.pythonhosted.org/packages/d7/3a/26054dd55032b391a0474fae8442a34fdc6f2fd7429f0c50e1b4705908f6/mashpy-0.4.6-py3-none-any.whl", hash = "sha256:af1fb198c8ae908e4329434bccc58891a5bff9926a127ae54ac9b1c1480582bc", size = 250486 },
 ]
 
 [[package]]

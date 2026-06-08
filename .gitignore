@@ -6,3 +6,4 @@ build/
 .eggs/
 *.spec
 .env
+.*_history

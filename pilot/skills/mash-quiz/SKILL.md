@@ -55,12 +55,12 @@ AskUser(question="What happens when a workflow task agent calls AskUser mid-exec
 
 Call AskUser with both `question` and `options` parameters. The user selects
 from the provided list. Use this for conceptual questions where there are
-clear distinct answers to choose from.
+clear distinct answers to choose from. Always use exactly 3 options.
 
 ```
 AskUser(
     question="Which method on AgentSpec defines the tools available to an agent?",
-    options=["build_tools()", "build_skills()", "build_agent_config()", "get_agent_id()"]
+    options=["build_tools()", "build_skills()", "get_agent_id()"]
 )
 ```
 
@@ -81,9 +81,13 @@ not respond in time. Handle gracefully by moving on.
    - **Hard**: A free-form question about implementation details, edge cases,
      or design tradeoffs that requires the user to explain their reasoning
 3. Present each question one at a time using AskUser.
-4. After the user responds, provide a clear explanation of the correct answer
-   with relevant code references. Be encouraging regardless of whether they
-   got it right.
+4. After the user responds, deliver feedback **inside the next AskUser call**,
+   not as standalone assistant text. Prepend the feedback (correct/incorrect,
+   explanation, code references) to the next question's `question` string,
+   separated by a horizontal rule (`---`). For the final question, deliver
+   feedback as your final response text (no further AskUser needed).
+   This ensures feedback is always visible to the user — assistant text
+   between tool calls is rendered as dim trace output and easy to miss.
 5. If the user asks a follow-up question about the answer, answer it
    thoroughly before moving to the next quiz question. Use AskUser (free-form)
    to prompt for follow-ups when the user's answer suggests confusion.
@@ -97,5 +101,6 @@ not respond in time. Handle gracefully by moving on.
 - Frame questions as learning opportunities, not trick questions
 - Keep explanations concise but informative
 - Reference specific files and functions when explaining answers
-- Use multiple-choice for questions with clear distinct answers; use free-form
-  for questions that benefit from the user articulating their understanding
+- Use multiple-choice (exactly 3 options) for questions with clear distinct
+  answers; use free-form for questions that benefit from the user articulating
+  their understanding
