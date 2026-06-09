@@ -503,7 +503,8 @@ class PilotSpec(_BaseCopilotSpec):
                                 f"Delegate to `{CLI_COPILOT_AGENT_ID}`, `{API_COPILOT_AGENT_ID}`, `{MCP_COPILOT_AGENT_ID}`, `{RUNTIME_COPILOT_AGENT_ID}`, or `{WORKFLOW_COPILOT_AGENT_ID}` when the question is centered on that module.",
                                 "Return one synthesized answer after any delegation.",
                                 "If a subagent call fails or returns an incomplete answer, do not repeat the same delegation blindly; use your own cached docs and one targeted bash lookup to finish the answer when possible.",
-                                "If you need direct code verification, use one targeted bash command and answer directly.",
+                                "For observability, telemetry, trace analysis, or span questions: delegate data model and analysis questions (spans, TraceAnalysis, timing breakdowns, tool stats) to `runtime-copilot`, API endpoint questions (/telemetry/traces, /telemetry/trace/analysis, event streaming) to `api-copilot`, CLI rendering questions (/trace command, chain_renderer, subagent trace rendering) to `cli-copilot`. For cross-cutting observability questions, prefer `runtime-copilot` as the primary delegate.",
+                            "If you need direct code verification, use one targeted bash command and answer directly.",
                                 f"Default delegated opts.timeout_ms={DEFAULT_SUBAGENT_TIMEOUT_MS}.",
                                 "Include the working folder in delegated prompts unless the user says otherwise:",
                                 f"'Working folder: {self.workspace_root}'",
@@ -546,7 +547,7 @@ def build_cli_metadata() -> SubAgentMetadata:
         display_name="Mash CLI Copilot",
         description=(
             "Specialist for the Mash CLI surface, REPL flow, terminal rendering, "
-            "command dispatch, and client-side session behavior."
+            "command dispatch, client-side session behavior, and trace visualization."
         ),
         capabilities=[
             "src/mash/cli",
@@ -555,10 +556,15 @@ def build_cli_metadata() -> SubAgentMetadata:
             "terminal rendering",
             "command dispatch",
             "session routing",
+            "/trace command",
+            "trace rendering",
+            "chain_renderer",
+            "subagent trace rendering",
         ],
         usage_guidance=(
             "Use for questions centered on CLI entrypoints, command handling, REPL "
-            "behavior, shell output, rendering, or local versus remote CLI session flow."
+            "behavior, shell output, rendering, local versus remote CLI session flow, "
+            "or the /trace command and how traces are rendered in the terminal."
         ),
     )
 
@@ -568,7 +574,7 @@ def build_api_metadata() -> SubAgentMetadata:
         display_name="Mash API Copilot",
         description=(
             "Specialist for the Mash hosted API surface, FastAPI app wiring, host "
-            "serving entrypoints, and telemetry UI integration."
+            "serving entrypoints, telemetry API endpoints, and telemetry UI integration."
         ),
         capabilities=[
             "src/mash/api",
@@ -577,10 +583,18 @@ def build_api_metadata() -> SubAgentMetadata:
             "fastapi app wiring",
             "host serving",
             "api configuration",
+            "telemetry API endpoints",
+            "/telemetry/traces",
+            "/telemetry/trace/analysis",
+            "/telemetry/events",
+            "/telemetry/events/stream",
+            "/telemetry/memory/search",
         ],
         usage_guidance=(
             "Use for questions centered on the API app, host startup, HTTP-facing "
-            "configuration, telemetry UI assets, or other behavior implemented under `src/mash/api`."
+            "configuration, telemetry UI assets, telemetry API endpoints "
+            "(traces, trace analysis, events, event streaming, memory search), "
+            "or other behavior implemented under `src/mash/api`."
         ),
     )
 
@@ -612,6 +626,7 @@ def build_runtime_metadata() -> SubAgentMetadata:
         display_name="Mash Runtime Copilot",
         description=(
             "Specialist for Mash runtime hosting, request handling, event sourcing, "
+            "span-based trace analysis, observability data model, "
             "durable workflow execution, and subagent/runtime integration."
         ),
         capabilities=[
@@ -622,10 +637,22 @@ def build_runtime_metadata() -> SubAgentMetadata:
             "event sourcing",
             "durable workflow execution",
             "subagent runtime integration",
+            "span trees",
+            "SpanKind",
+            "TraceSpanTree",
+            "TraceAnalysis",
+            "trace analysis",
+            "timing breakdown",
+            "observability data model",
+            "tool call stats",
+            "step breakdown",
+            "subagent trace stitching",
         ],
         usage_guidance=(
             "Use for questions centered on AgentRuntime behavior, runtime host "
             "composition, request lifecycle, event replay, workflow durability, "
+            "span-based trace analysis (spans, span trees, TraceAnalysis, timing breakdowns, "
+            "tool stats, step breakdowns, subagent trace stitching), "
             "or other behavior implemented under `src/mash/runtime`."
         ),
     )
