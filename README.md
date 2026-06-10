@@ -83,6 +83,7 @@ spans modules, it synthesizes answers from multiple copilots.
 | `/help` | Show available commands |
 | `/status` | Agent and session status |
 | `/history [N]` | Show last N turns |
+| `/trace [N]` | Show span analysis for the last N traces |
 | `/clear` | Clear session history |
 | `/changelog [N]` | Generate changelog from last N commits (default: 5) |
 | `/quiz` | Interactive quiz about Mash internals |

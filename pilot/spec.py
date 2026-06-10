@@ -55,8 +55,9 @@ PILOT_DOC_ROOTS = (
 PILOT_EXTRA_DOC_PATHS = (
     "README.md",
     "src/mash/AGENTS.md",
-    "docs/building-agent-clis.md",
-    "docs/how-to-deploy.md",
+    "docs/posts/product-brief.md",
+    "docs/posts/building-agent-clis.md",
+    "docs/posts/how-to-deploy.md",
     "docs/rfcs/host-to-agent-protocol.md",
 )
 
@@ -67,7 +68,7 @@ def _load_pilot_env() -> None:
 
 
 _load_pilot_env()
-ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 GITHUB_MCP_URL = os.getenv("GITHUB_MCP_URL") or "https://api.githubcopilot.com/mcp/"
 GITHUB_MCP_PAT = os.getenv("GITHUB_MCP_PAT")
@@ -138,7 +139,7 @@ class PilotSpec(AgentSpec):
                                 "Return one synthesized answer after any delegation.",
                                 "If a subagent call fails or returns an incomplete answer, do not repeat the same delegation blindly; use your own cached docs and one targeted bash lookup to finish the answer when possible.",
                                 "For observability, telemetry, trace analysis, or span questions: delegate data model and analysis questions (spans, TraceAnalysis, timing breakdowns, tool stats) to `runtime-copilot`, API endpoint questions (/telemetry/traces, /telemetry/trace/analysis, event streaming) to `api-copilot`, CLI rendering questions (/trace command, chain_renderer, subagent trace rendering) to `cli-copilot`. For cross-cutting observability questions, prefer `runtime-copilot` as the primary delegate.",
-                            "If you need direct code verification, use one targeted bash command and answer directly.",
+                                "If you need direct code verification, use one targeted bash command and answer directly.",
                                 f"Default delegated opts.timeout_ms={DEFAULT_SUBAGENT_TIMEOUT_MS}.",
                                 "Include the working folder in delegated prompts unless the user says otherwise:",
                                 f"'Working folder: {self.workspace_root}'",
@@ -189,11 +190,23 @@ def build_host(workspace_root: Path | None = None) -> AgentHost:
     host = (
         HostBuilder()
         .primary(create_pilot_spec(workspace_root=ws))
-        .subagent(create_cli_copilot_spec(workspace_root=ws), metadata=build_cli_metadata())
-        .subagent(create_api_copilot_spec(workspace_root=ws), metadata=build_api_metadata())
-        .subagent(create_mcp_copilot_spec(workspace_root=ws), metadata=build_mcp_metadata())
-        .subagent(create_runtime_copilot_spec(workspace_root=ws), metadata=build_runtime_metadata())
-        .subagent(create_workflow_copilot_spec(workspace_root=ws), metadata=build_workflow_metadata())
+        .subagent(
+            create_cli_copilot_spec(workspace_root=ws), metadata=build_cli_metadata()
+        )
+        .subagent(
+            create_api_copilot_spec(workspace_root=ws), metadata=build_api_metadata()
+        )
+        .subagent(
+            create_mcp_copilot_spec(workspace_root=ws), metadata=build_mcp_metadata()
+        )
+        .subagent(
+            create_runtime_copilot_spec(workspace_root=ws),
+            metadata=build_runtime_metadata(),
+        )
+        .subagent(
+            create_workflow_copilot_spec(workspace_root=ws),
+            metadata=build_workflow_metadata(),
+        )
         .enable_masher()
         .build()
     )

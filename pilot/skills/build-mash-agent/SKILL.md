@@ -261,6 +261,9 @@ run_host(
 )
 ```
 
+For a complete guide on building CLI-based agent apps, read
+`docs/posts/building-agent-clis.md`.
+
 ## Structured Output
 
 To get typed JSON responses from agents:
@@ -292,21 +295,21 @@ response = await runtime.submit_request(
 
 ## Deployment
 
-For deploying a Mash Host (local, Docker, cloud, horizontal scaling), see
-[HOW_TO_DEPLOY.md](HOW_TO_DEPLOY.md).
+For deploying a Mash Host (local, Docker, cloud, horizontal scaling), read
+`docs/posts/how-to-deploy.md`.
 
 ## Reference Documentation
 
-Fetch these URLs when you need deeper context on a specific subsystem:
+Read these local files (relative to the workspace root) when you need deeper
+context on a specific subsystem:
 
-- Package overview: https://github.com/imsid/mashpy/blob/main/src/mash/README.md
-- Runtime & hosting: https://github.com/imsid/mashpy/blob/main/src/mash/runtime/README.md
-- Tools: https://github.com/imsid/mashpy/blob/main/src/mash/tools/README.md
-- Skills: https://github.com/imsid/mashpy/blob/main/src/mash/skills/README.md
-- LLM providers: https://github.com/imsid/mashpy/blob/main/src/mash/core/llm/README.md
-- Workflows: https://github.com/imsid/mashpy/blob/main/src/mash/workflows/README.md
-- API server: https://github.com/imsid/mashpy/blob/main/src/mash/api/README.md
-- CLI: https://github.com/imsid/mashpy/blob/main/src/mash/cli/README.md
-- Memory: https://github.com/imsid/mashpy/blob/main/src/mash/memory/README.md
-- MCP: https://github.com/imsid/mashpy/blob/main/src/mash/mcp/README.md
-- Example app (Pilot): https://github.com/imsid/mash-pilot
+- Package overview: `src/mash/README.md`
+- Runtime & hosting: `src/mash/runtime/README.md`
+- Tools: `src/mash/tools/README.md`
+- Skills: `src/mash/skills/README.md`
+- LLM providers: `src/mash/core/llm/README.md`
+- Workflows: `src/mash/workflows/README.md`
+- API server: `src/mash/api/README.md`
+- CLI: `src/mash/cli/README.md`
+- Memory: `src/mash/memory/README.md`
+- MCP: `src/mash/mcp/README.md`

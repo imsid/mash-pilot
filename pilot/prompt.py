@@ -37,7 +37,7 @@ def build_repo_context(
 
     doc_sections: list[str] = []
     for file_path in cached_files:
-        if not file_path.endswith(("README.md", "AGENTS.md", "HOW_TO_DEPLOY.md")):
+        if not file_path.endswith(".md"):
             continue
         path = Path(file_path)
         try:
