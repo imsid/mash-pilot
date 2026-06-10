@@ -131,11 +131,11 @@ re-tag at the new commit:
 ```bash
 git add -A && git commit -m "fix release build"
 git push origin main
-git tag -d v0.2.0
-git push origin :refs/tags/v0.2.0
-gh release delete v0.2.0 --yes
-git tag v0.2.0
-git push origin v0.2.0
+git tag -d v0.1.0
+git push origin :refs/tags/v0.1.0
+gh release delete v0.1.0 --yes
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 The install script (`install.sh`) always fetches the latest release:
