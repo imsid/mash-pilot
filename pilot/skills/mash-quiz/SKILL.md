@@ -16,8 +16,10 @@ Key concepts users should learn about:
 
 - **AgentSpec**: Defines an agent's identity, tools, skills, LLM provider,
   and system prompt
-- **HostBuilder**: Wires primary agent, subagents, and workflow agents into
-  an AgentHost
+- **HostBuilder / AgentPool**: Registers role-less agents (each with
+  AgentMetadata), workflows, and Host compositions into an AgentPool
+- **Host**: Composition over the pool naming a primary and subagents;
+  roles live in the host, not on the agents
 - **AgentRuntime / RequestEngine**: Manages request lifecycle, event sourcing,
   and durable execution
 - **Workflows**: DBOS-backed orchestration with TaskSpec, WorkflowSpec, and
@@ -91,6 +93,11 @@ not respond in time. Handle gracefully by moving on.
 5. If the user asks a follow-up question about the answer, answer it
    thoroughly before moving to the next quiz question. Use AskUser (free-form)
    to prompt for follow-ups when the user's answer suggests confusion.
+6. **Early exit**: if any AskUser response indicates the user wants to stop
+   or has exited (e.g. "stop", "quit", "exit", or a message saying the user
+   exited or interrupted the quiz), end the quiz immediately. Do not call
+   AskUser again and do not ask remaining questions — return a one-line
+   goodbye as your final response text.
 
 ## Guidelines
 

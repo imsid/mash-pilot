@@ -203,6 +203,7 @@ def register_quiz_command(shell: Any) -> None:
             return
 
         streamed_response_text: str | None = None
+        pending_interaction: dict[str, Any] | None = None
         try:
             for event in ctx.client.stream_workflow_run(QUIZ_WORKFLOW_ID, run_id):
                 event_name = str(event.get("event") or "")
@@ -229,7 +230,9 @@ def register_quiz_command(shell: Any) -> None:
 
                 if event_name == "request.interaction.create":
                     shell.chain_renderer.finish_trace()
+                    pending_interaction = payload
                     _handle_quiz_interaction(ctx, payload)
+                    pending_interaction = None
                     continue
 
                 if event_name == "request.interaction.ack":
@@ -254,6 +257,12 @@ def register_quiz_command(shell: Any) -> None:
                 if event_name == "workflow.error":
                     error = payload.get("error")
                     raise RuntimeError(str(error or "quiz workflow failed"))
+        except KeyboardInterrupt:
+            # Swallow Ctrl-C so the REPL survives, and try to end the run
+            # gracefully instead of leaving a PENDING durable workflow that
+            # DBOS would recover on every host restart.
+            shell.chain_renderer.finish_trace()
+            _abort_quiz(ctx, pending_interaction, run_id)
         finally:
             shell.chain_renderer.finish_trace()
 
@@ -264,6 +273,79 @@ def register_quiz_command(shell: Any) -> None:
             handler=quiz_command,
         )
     )
+
+
+QUIZ_ABORT_RESPONSE = (
+    "The user exited the quiz (Ctrl-C). Stop immediately: do not ask any more "
+    "questions or call AskUser again; end the workflow now with a one-line "
+    "goodbye."
+)
+
+
+def _post_abort_response(ctx: Any, interaction: dict[str, Any]) -> None:
+    agent_id = str(
+        interaction.get("agent_id") or interaction.get("task_agent_id") or ""
+    )
+    ctx.client.post_interaction(
+        agent_id,
+        str(interaction.get("request_id") or ""),
+        interaction_id=str(interaction.get("interaction_id") or ""),
+        response=QUIZ_ABORT_RESPONSE,
+    )
+
+
+def _abort_quiz(
+    ctx: Any, pending_interaction: dict[str, Any] | None, run_id: str
+) -> None:
+    """Wind down an interrupted quiz run.
+
+    Mash has no workflow-cancel API, but the quiz blocks on durable AskUser
+    interactions. If one is pending, answer it with a stop instruction so the
+    quiz agent completes the run instead of waiting until the interaction
+    times out. Keep draining the run's stream and answer any further
+    questions the same way, so the run can't be left PENDING.
+    """
+    if pending_interaction is None:
+        ctx.renderer.warn(
+            f"\nQuiz interrupted. Run {run_id} is still executing server-side; "
+            "it will stop at its next question's timeout."
+        )
+        return
+
+    try:
+        _post_abort_response(ctx, pending_interaction)
+        ctx.renderer.info("\nQuiz interrupted — asking the quiz agent to stop...")
+        # Drain until the run terminates, re-sending the stop instruction if
+        # the agent asks anything else. Capped so a misbehaving agent can't
+        # hold the shell hostage.
+        aborts_left = 3
+        for event in ctx.client.stream_workflow_run(QUIZ_WORKFLOW_ID, run_id):
+            event_name = str(event.get("event") or "")
+            if event_name == "request.interaction.create":
+                if aborts_left <= 0:
+                    ctx.renderer.warn(
+                        f"Quiz agent kept asking questions; run {run_id} will "
+                        "stop at its next question's timeout."
+                    )
+                    return
+                aborts_left -= 1
+                payload = event.get("data")
+                if isinstance(payload, dict):
+                    _post_abort_response(ctx, payload)
+                continue
+            if event_name in ("request.completed", "request.error", "workflow.error"):
+                ctx.renderer.info("Quiz stopped.")
+                return
+    except KeyboardInterrupt:
+        ctx.renderer.warn(
+            f"\nQuiz abort abandoned. Run {run_id} is still executing "
+            "server-side; it will stop at its next question's timeout."
+        )
+    except Exception as exc:
+        ctx.renderer.warn(
+            f"\nQuiz interrupted, but could not notify the quiz agent ({exc}). "
+            f"Run {run_id} will stop at its next question's timeout."
+        )
 
 
 def _handle_quiz_interaction(ctx: Any, payload: dict[str, Any]) -> None:

@@ -18,7 +18,7 @@ Ask Pilot anything about the Mash codebase. It delegates to specialized
 copilots under the hood and synthesizes the answer.
 
 ```text
-> Summarize how HostBuilder wires the primary agent, subagents, and workflows.
+> Summarize how HostBuilder registers pooled agents and host compositions.
 > Trace how an accepted request moves through AgentRuntime, RuntimeStore, and RequestEngine.
 > Explain when request.waiting is emitted and what that means for a busy session.
 > Compare src/mash/runtime and src/mash/workflows responsibilities.
@@ -55,8 +55,8 @@ Test your understanding of Mash with the `/quiz` REPL command. Pilot generates
 3 questions of increasing complexity about Mash internals and quizzes you
 interactively. Ask follow-up questions at any point — the goal is learning,
 not scoring. This is powered by a dedicated **workflow agent** registered at
-startup, demonstrating how Mash composes workflow agents alongside the primary
-agent and its copilots.
+startup, demonstrating how Mash runs workflow-only agents alongside the
+pooled agents.
 
 ```text
 > /quiz
@@ -64,17 +64,24 @@ agent and its copilots.
 
 ## Agents
 
+The deployment is a flat pool of six agents plus a code-defined `pilot` host
+composition (primary `pilot`, the five copilots as subagents):
+
 | Agent | Scope |
 |-------|-------|
-| `pilot` (primary) | Shared/cross-cutting: `core`, `tools`, `skills`, `logging`, `memory` |
+| `pilot` | Shared/cross-cutting: `core`, `tools`, `skills`, `logging`, `memory` |
 | `cli-copilot` | `src/mash/cli` — commands, REPL, terminal rendering |
 | `api-copilot` | `src/mash/api` — HTTP routes, FastAPI, telemetry UI |
 | `mcp-copilot` | `src/mash/mcp` — MCP client/server, transport, tool adaptation |
 | `runtime-copilot` | `src/mash/runtime` — request lifecycle, event sourcing, durability |
 | `workflow-copilot` | `src/mash/workflows` — DBOS orchestration, task state, run status |
 
-The primary agent delegates automatically based on the question. If a question
-spans modules, it synthesizes answers from multiple copilots.
+`pilot repl` routes messages through the `pilot` host, so the primary
+delegates automatically based on the question. If a question spans modules,
+it synthesizes answers from multiple copilots. Use `pilot repl --agent <id>`
+to talk to one pooled agent directly with no delegation, or drive the same
+deployment with the stock mash CLI: `mash connect` / `mash compose` /
+`mash repl`.
 
 ## REPL Commands
 

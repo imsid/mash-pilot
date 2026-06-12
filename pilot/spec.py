@@ -1,4 +1,4 @@
-"""Pilot agent spec and host registration."""
+"""Pilot agent specs and pool registration."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from mash.core.config import AgentConfig
 from mash.core.llm import LLMProvider
 from mash.core.llm.anthropic import AnthropicProvider
 from mash.mcp.types import MCPServerConfig
-from mash.runtime import AgentHost, AgentSpec, HostBuilder
+from mash.runtime import AgentMetadata, AgentPool, AgentSpec, Host, HostBuilder
 from mash.skills.registry import SkillRegistry
 from mash.tools.ask_user import AskUserTool
 from mash.tools.bash import BashTool
@@ -42,6 +42,7 @@ from .tools import UpdateDocsTool
 from .workflows.quiz import QuizAgentSpec, build_quiz_workflow_spec
 
 PILOT_AGENT_ID = "pilot"
+PILOT_HOST_ID = "pilot"
 DEFAULT_SUBAGENT_TIMEOUT_MS = 360_000
 
 PILOT_DOC_ROOTS = (
@@ -54,9 +55,10 @@ PILOT_DOC_ROOTS = (
 )
 PILOT_EXTRA_DOC_PATHS = (
     "README.md",
-    "src/mash/AGENTS.md",
+    "src/mash/README.md",
     "docs/posts/product-brief.md",
     "docs/posts/building-agent-clis.md",
+    "docs/posts/building-dynamic-hosts-apis.md",
     "docs/posts/how-to-deploy.md",
     "docs/rfcs/host-to-agent-protocol.md",
 )
@@ -181,39 +183,81 @@ def create_pilot_spec(*, workspace_root: str) -> PilotSpec:
     return PilotSpec(Path(workspace_root).resolve())
 
 
-def build_host(workspace_root: Path | None = None) -> AgentHost:
-    """Build the Mash Pilot Agent host."""
+def build_pilot_metadata() -> AgentMetadata:
+    return AgentMetadata(
+        display_name="Pilot",
+        description=(
+            "Primary Mash codebase guide; handles core, tools, skills, logging, "
+            "memory, and cross-cutting questions."
+        ),
+        capabilities=[
+            "src/mash/core",
+            "src/mash/tools",
+            "src/mash/skills",
+            "src/mash/logging",
+            "src/mash/memory",
+            "cross-cutting codebase questions",
+            "answer synthesis across modules",
+        ],
+        usage_guidance=(
+            "Default entry point for Mash codebase questions. Use for shared and "
+            "core behavior, or questions that span multiple modules; module-"
+            "centered questions belong to the matching copilot."
+        ),
+    )
+
+
+def build_pool(workspace_root: Path | None = None) -> AgentPool:
+    """Build the Mash Pilot agent pool plus the `pilot` host composition."""
     resolved_workspace_root = (
         workspace_root or Path(os.environ.get("PILOT_WORKSPACE_ROOT", "."))
     ).resolve()
     ws = str(resolved_workspace_root)
-    host = (
+    pool = (
         HostBuilder()
-        .primary(create_pilot_spec(workspace_root=ws))
-        .subagent(
+        .agent(create_pilot_spec(workspace_root=ws), metadata=build_pilot_metadata())
+        .agent(
             create_cli_copilot_spec(workspace_root=ws), metadata=build_cli_metadata()
         )
-        .subagent(
+        .agent(
             create_api_copilot_spec(workspace_root=ws), metadata=build_api_metadata()
         )
-        .subagent(
+        .agent(
             create_mcp_copilot_spec(workspace_root=ws), metadata=build_mcp_metadata()
         )
-        .subagent(
+        .agent(
             create_runtime_copilot_spec(workspace_root=ws),
             metadata=build_runtime_metadata(),
         )
-        .subagent(
+        .agent(
             create_workflow_copilot_spec(workspace_root=ws),
             metadata=build_workflow_metadata(),
         )
         .enable_masher()
+        .host(
+            Host(
+                host_id=PILOT_HOST_ID,
+                primary=PILOT_AGENT_ID,
+                subagents=(
+                    CLI_COPILOT_AGENT_ID,
+                    API_COPILOT_AGENT_ID,
+                    MCP_COPILOT_AGENT_ID,
+                    RUNTIME_COPILOT_AGENT_ID,
+                    WORKFLOW_COPILOT_AGENT_ID,
+                ),
+            )
+        )
         .build()
     )
     quiz_spec = QuizAgentSpec(workspace_root=resolved_workspace_root)
-    host.register_workflow_agent(quiz_spec)
-    host.register_workflow(build_quiz_workflow_spec(quiz_spec))
-    return host
+    pool.register_workflow_agent(quiz_spec)
+    pool.register_workflow(build_quiz_workflow_spec(quiz_spec))
+    return pool
+
+
+# Back-compat alias: existing deployments may still point MASH_HOST_APP at
+# `pilot.spec:build_host`. Drop once they are confirmed on `build_pool`.
+build_host = build_pool
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -231,7 +275,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     run_host(
-        build_host(Path(args.workspace_root).resolve()),
+        build_pool(Path(args.workspace_root).resolve()),
         config=MashHostConfig(
             bind_host=args.host,
             bind_port=args.port,

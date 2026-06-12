@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from mash.core.config import AgentConfig
-from mash.runtime import SubAgentMetadata
+from mash.runtime import AgentMetadata
 from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
@@ -38,8 +38,8 @@ class ApiCopilotSpec(CopilotAgentSpec):
         return self._build_copilot_config(API_COPILOT_AGENT_ID)
 
 
-def build_api_metadata() -> SubAgentMetadata:
-    return SubAgentMetadata(
+def build_api_metadata() -> AgentMetadata:
+    return AgentMetadata(
         display_name="Mash API Copilot",
         description=(
             "Specialist for the Mash hosted API surface, FastAPI app wiring, host "

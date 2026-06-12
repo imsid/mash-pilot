@@ -10,6 +10,20 @@ SDK (`pip install mashpy`). Mash is a framework for building self-hosted
 multi-agent applications with durable execution, human-in-the-loop interactions,
 and a built-in API server.
 
+The model to keep in mind throughout:
+
+| Concept | Role |
+|---|---|
+| `AgentSpec` | Contract defining one agent (id, tools, skills, LLM, config) |
+| `AgentMetadata` | Required self-description registered with every agent (display name, description, capabilities, usage guidance) |
+| `AgentPool` | The deployed flat pool of role-less agents — the unit of deploy |
+| `Host` | A composition over the pool naming a primary and subagents — the unit of composition |
+| `HostBuilder` | Fluent builder producing an `AgentPool` from agents, workflows, and host definitions |
+
+Agents never carry roles. "Primary" and "subagent" only exist inside a `Host`,
+so the same agent can be primary in one host and a subagent in another. One
+pool can serve many hosts at once.
+
 Follow the steps below to scaffold a working Mash agent from the user's
 description.
 
@@ -22,7 +36,8 @@ From the user's prompt, determine:
 2. **Tools needed** — what actions the agent can take (bash, web search,
    database queries, API calls, file operations, etc.)
 3. **LLM provider** — Anthropic (default), OpenAI, or Google Gemini
-4. **Multi-agent** — does the user need subagents for delegation?
+4. **Multi-agent** — does the user need several specialists composed into a
+   host, with a primary delegating to subagents?
 5. **Workflows** — does the user need ordered task pipelines?
 6. **Human-in-the-loop** — does any tool need user approval before executing?
 
@@ -35,7 +50,7 @@ Create this file structure:
 ```
 {project_name}/
   __init__.py
-  spec.py          # AgentSpec subclass(es) + build_host()
+  spec.py          # AgentSpec subclass(es) + build_pool()
   tools.py         # Custom tool implementations (if any)
 ```
 
@@ -46,14 +61,14 @@ Every Mash agent implements `AgentSpec`. Here is the minimal scaffold:
 ```python
 from mash.core.config import AgentConfig
 from mash.core.llm import AnthropicProvider
-from mash.runtime import AgentSpec, HostBuilder
+from mash.runtime import AgentMetadata, AgentSpec, HostBuilder
 from mash.skills import SkillRegistry
 from mash.tools import ToolRegistry
 
 
-class PrimaryAgent(AgentSpec):
+class AssistantAgent(AgentSpec):
     def get_agent_id(self) -> str:
-        return "primary"
+        return "assistant"
 
     def build_tools(self) -> ToolRegistry:
         tools = ToolRegistry()
@@ -64,18 +79,34 @@ class PrimaryAgent(AgentSpec):
         return SkillRegistry()
 
     def build_llm(self):
-        return AnthropicProvider(app_id="primary")
+        return AnthropicProvider(app_id="assistant")
 
     def build_agent_config(self) -> AgentConfig:
         return AgentConfig(
-            app_id="primary",
+            app_id="assistant",
             system_prompt="You are a helpful assistant.",
         )
 
 
-def build_host():
-    return HostBuilder().primary(PrimaryAgent()).build()
+def build_pool():
+    return (
+        HostBuilder()
+        .agent(
+            AssistantAgent(),
+            metadata=AgentMetadata(
+                display_name="Assistant",
+                description="General-purpose assistant.",
+                capabilities=["conversation"],
+                usage_guidance="Default agent for user requests.",
+            ),
+        )
+        .build()
+    )
 ```
+
+`AgentMetadata` is required for every pooled agent — registration rejects an
+agent without it. It is the self-description delegation decisions are made
+from, so write it like routing documentation, not marketing copy.
 
 ### tools.py — Custom Tools
 
@@ -181,28 +212,85 @@ AgentConfig(
 - Be specific about the agent's role, capabilities, and boundaries.
 - List available tools and when to use each one.
 - Define output format expectations if applicable.
+
 ## Step 5: Multi-Agent Composition (if needed)
 
-```python
-from mash.runtime import HostBuilder, SubAgentMetadata
+Register every agent role-less into the flat pool, then compose a `Host`
+over it. Roles (primary, subagents) live in the host, not on the agents:
 
-host = (
+```python
+from mash.runtime import AgentMetadata, Host, HostBuilder
+
+pool = (
     HostBuilder()
-    .primary(PrimaryAgent())
-    .subagent(
+    .agent(AssistantAgent(), metadata=AgentMetadata(...))
+    .agent(
         ResearchAgent(),
-        metadata=SubAgentMetadata(
+        metadata=AgentMetadata(
             display_name="Research Agent",
             description="Handles deep research queries.",
             capabilities=["web search", "document analysis"],
             usage_guidance="Delegate research-heavy questions here.",
         ),
     )
+    .host(
+        Host(
+            host_id="assistant",
+            primary="assistant",
+            subagents=("research",),
+        )
+    )
     .build()
 )
 ```
 
-The primary agent automatically gets an `InvokeSubagent` tool for delegation.
+### How host routing works
+
+Submitting a request to a host routes it to that host's primary and — for
+that request only — wires the primary with an `InvokeSubagent` tool plus a
+directory of the host's subagents, built from their `AgentMetadata`. The
+primary's model reads that directory to decide when to delegate, so
+**delegation quality is a prompt-engineering surface**: vague
+`usage_guidance` produces vague routing. A bare request to the same agent
+(`POST /v1/agent/{agent_id}/request`) gets no directory and no delegation
+tool — the agent answers alone.
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/hosts/assistant/request \
+  -H "Content-Type: application/json" \
+  -d '{"message": "find recent papers", "session_id": "s-1"}'
+# -> {"request_id": "...", "agent_id": "assistant", "session_id": "s-1"}
+```
+
+The response names the primary `agent_id`; stream results from the existing
+`GET /v1/agent/{agent_id}/request/{request_id}/events`. Each request
+snapshots the host composition at submit time, so redefining a host never
+affects in-flight requests.
+
+### Code-defined vs dynamic hosts
+
+A host is just data (a few agent ids), so there are two ways to define one:
+
+- **Code-defined** (`.host(Host(...))` as above) — ships with the deploy and
+  is re-created on every restart. Use this for compositions that must always
+  exist, e.g. when other clients target the deployment.
+- **Dynamic** — defined on a running pool, in code with
+  `pool.define_host(Host(host_id="research-only", primary="research"))` or
+  over the API with an idempotent `PUT`:
+
+  ```bash
+  curl -X PUT http://127.0.0.1:8000/api/v1/hosts/research-only \
+    -H "Content-Type: application/json" \
+    -d '{"primary": "research", "subagents": [], "workflows": []}'
+  ```
+
+  Dynamic hosts are in-memory: they disappear on restart and must be
+  re-`PUT` (the PUT is idempotent, so clients can safely define their
+  composition on every startup). If a composition references an agent that
+  isn't in the pool, the server rejects it with a clear error.
+
+Because hosts are cheap, a client can compose a host per task, route a few
+requests through it, and forget it.
 
 ## Step 6: MCP Server Integration (if needed)
 
@@ -237,18 +325,40 @@ workflow = WorkflowSpec(
     ],
 )
 
-host = HostBuilder().primary(PrimaryAgent()).workflow(workflow).build()
+pool = (
+    HostBuilder()
+    .agent(AssistantAgent(), metadata=AgentMetadata(...))
+    .workflow(workflow)
+    .build()
+)
 ```
+
+Specs registered through `.workflow(...)` (or `pool.register_workflow_agent`)
+become **workflow-only agents**: full runtimes that execute workflow tasks
+but are hidden from public agent listings and can't be named in a host —
+primaries can't delegate to them and clients can't address them directly.
 
 ## Step 8: Run the Agent
 
 ```bash
 # Start the host server
-mash host serve --host-app {project_name}.spec:build_host --port 8000
+mash host serve --host-app {project_name}.spec:build_pool --port 8000
 
-# Connect the CLI (in another terminal)
-mash connect --api-base-url http://127.0.0.1:8000 --api-key secret --agent primary
+# Single agent: connect straight to it (bare mode, no delegation)
+mash connect --api-base-url http://127.0.0.1:8000 --api-key secret --agent assistant
+
+# Multi-agent: connect, inspect the pool, compose a host, and pin a REPL to it
+mash connect --api-base-url http://127.0.0.1:8000 --api-key secret
+mash agents                                          # what's in the pool
+mash compose --host assistant --primary assistant --subagents research
+mash repl                                            # routed through 'assistant'
 ```
+
+`mash compose` issues the idempotent `PUT /v1/hosts/{host_id}` and pins later
+commands to that host; `mash hosts` lists defined compositions. The REPL
+target is fixed for its lifetime — exit and `mash compose` again to change
+composition. With a code-defined host (`.host(...)` in `build_pool()`), skip
+`mash compose` and `mash repl` against the shipped host directly.
 
 Or run programmatically:
 
@@ -256,13 +366,16 @@ Or run programmatically:
 from mash.api import run_host, MashHostConfig
 
 run_host(
-    build_host(),
+    build_pool(),
     config=MashHostConfig(bind_host="0.0.0.0", bind_port=8000, api_key="secret"),
 )
 ```
 
-For a complete guide on building CLI-based agent apps, read
-`docs/posts/building-agent-clis.md`.
+For a complete guide on building your own CLI for a Mash deployment, read
+`docs/posts/building-agent-clis.md`. For how composition works under the
+hood (delegation, per-request role wiring, mirrored traces), read
+`docs/posts/composing-agents.md`; for driving composition purely over HTTP,
+`docs/posts/building-dynamic-hosts-apis.md`.
 
 ## Structured Output
 

@@ -17,7 +17,7 @@ services:
       - key: GITHUB_MCP_PAT
         sync: false
       - key: MASH_HOST_APP
-        value: pilot.spec:build_host
+        value: pilot.spec:build_pool
 
 databases:
   - name: pilot-db

@@ -17,6 +17,7 @@ PILOT_DEFAULT_API_BASE_URL = os.environ.get(
     "PILOT_API_BASE_URL",
     "https://pilot-tk3b.onrender.com",
 )
+PILOT_HOST_ID = "pilot"
 
 
 def _resolve_connection(args: argparse.Namespace) -> tuple[str, str | None, str | None]:
@@ -34,15 +35,30 @@ def _resolve_connection(args: argparse.Namespace) -> tuple[str, str | None, str 
     return base_url, api_key, agent_id
 
 
-def _resolve_agent(client: MashHostClient, explicit_agent: str | None) -> str:
+def _resolve_target(
+    client: MashHostClient, explicit_agent: str | None
+) -> tuple[str, str | None]:
+    """Resolve (agent_id, host_id) for the shell target.
+
+    With --agent the shell runs in bare-agent mode (no host, no delegation);
+    otherwise it targets the code-defined `pilot` host composition.
+    """
     if explicit_agent:
-        return explicit_agent
-    health = client.health()
-    deployment = health.get("deployment") or {}
-    agent_id = deployment.get("primary_agent_id")
+        return explicit_agent, None
+    try:
+        described = client.get_host(PILOT_HOST_ID)
+    except Exception as exc:
+        raise ValueError(
+            f"host '{PILOT_HOST_ID}' is not defined on this deployment "
+            f"(expected it from pilot.spec:build_pool): {exc}"
+        ) from exc
+    primary = described.get("primary") or {}
+    agent_id = primary.get("agent_id") if isinstance(primary, dict) else None
     if not isinstance(agent_id, str) or not agent_id.strip():
-        raise ValueError("could not resolve default agent id from deployment")
-    return agent_id.strip()
+        raise ValueError(
+            f"host '{PILOT_HOST_ID}' did not report a primary agent id"
+        )
+    return agent_id.strip(), PILOT_HOST_ID
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -52,7 +68,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--api-base-url", default=None, help="Mash host base URL")
     parser.add_argument("--api-key", default=None, help="Bearer API key")
-    parser.add_argument("--agent", default=None, help="Target agent id")
+    parser.add_argument(
+        "--agent",
+        default=None,
+        help="Target a single agent directly (bare-agent mode, no delegation)",
+    )
     subparsers = parser.add_subparsers(dest="command")
 
     repl = subparsers.add_parser("repl", help="Start a Pilot remote REPL")
@@ -70,11 +90,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             base_url, api_key, configured_agent = _resolve_connection(args)
             client = MashHostClient(base_url, api_key=api_key)
             try:
-                agent_id = _resolve_agent(client, configured_agent)
+                agent_id, host_id = _resolve_target(client, configured_agent)
                 target = ShellTarget(
                     api_base_url=base_url,
                     agent_id=agent_id,
                     session_id=args.session_id or MashRemoteShell.new_session_id(),
+                    host_id=host_id,
                 )
                 shell = MashRemoteShell(client, target)
                 register_changelog_command(shell)

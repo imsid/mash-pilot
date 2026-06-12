@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from mash.core.config import AgentConfig
-from mash.runtime import SubAgentMetadata
+from mash.runtime import AgentMetadata
 from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
@@ -38,8 +38,8 @@ class McpCopilotSpec(CopilotAgentSpec):
         return self._build_copilot_config(MCP_COPILOT_AGENT_ID)
 
 
-def build_mcp_metadata() -> SubAgentMetadata:
-    return SubAgentMetadata(
+def build_mcp_metadata() -> AgentMetadata:
+    return AgentMetadata(
         display_name="Mash MCP Copilot",
         description=(
             "Specialist for Mash MCP transport, server and client wiring, manager "

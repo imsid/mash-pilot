@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from mash.core.config import AgentConfig
-from mash.runtime import SubAgentMetadata
+from mash.runtime import AgentMetadata
 from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
@@ -38,8 +38,8 @@ class RuntimeCopilotSpec(CopilotAgentSpec):
         return self._build_copilot_config(RUNTIME_COPILOT_AGENT_ID)
 
 
-def build_runtime_metadata() -> SubAgentMetadata:
-    return SubAgentMetadata(
+def build_runtime_metadata() -> AgentMetadata:
+    return AgentMetadata(
         display_name="Mash Runtime Copilot",
         description=(
             "Specialist for Mash runtime hosting, request handling, event sourcing, "

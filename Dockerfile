@@ -19,7 +19,7 @@ RUN pip install .
 # This gives agents access to source code, READMEs, and git history.
 RUN git clone --depth 1 https://github.com/imsid/mashpy.git /opt/mashpy
 
-ENV MASH_HOST_APP=pilot.spec:build_host
+ENV MASH_HOST_APP=pilot.spec:build_pool
 ENV PILOT_WORKSPACE_ROOT=/opt/mashpy
 
 RUN mkdir -p /var/lib/mash

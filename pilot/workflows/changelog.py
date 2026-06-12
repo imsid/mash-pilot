@@ -42,13 +42,13 @@ def changelog_skill_payload() -> dict[str, object]:
     }
 
 
-def changelog_workflow_payload(primary_agent_id: str) -> dict[str, object]:
+def changelog_workflow_payload(agent_id: str) -> dict[str, object]:
     return {
         "workflow_id": CHANGELOG_WORKFLOW_ID,
         "tasks": [
             {
                 "task_id": CHANGELOG_TASK_ID,
-                "agent_id": primary_agent_id,
+                "agent_id": agent_id,
                 "structured_output": CHANGELOG_STRUCTURED_OUTPUT,
             }
         ],
@@ -91,22 +91,20 @@ def register_changelog_command(shell: Any) -> None:
             ctx.renderer.error("Changelog commit count must be positive")
             return
 
-        health = ctx.client.health()
-        deployment = health.get("deployment") if isinstance(health, dict) else {}
-        if not isinstance(deployment, dict):
-            deployment = {}
-        primary_agent_id = str(deployment.get("primary_agent_id") or "").strip()
-        if not primary_agent_id:
-            ctx.renderer.error("Primary agent is not available")
+        # The shell's target agent: the host's primary when a host is set,
+        # otherwise the bare agent. Workflow tasks address the agent directly.
+        agent_id = str(ctx.agent_id or "").strip()
+        if not agent_id:
+            ctx.renderer.error("Target agent is not available")
             return
 
         ctx.client.register_agent_skill(
-            primary_agent_id,
+            agent_id,
             changelog_skill_payload(),
         )
         ctx.client.register_agent_workflow(
-            primary_agent_id,
-            changelog_workflow_payload(primary_agent_id),
+            agent_id,
+            changelog_workflow_payload(agent_id),
         )
 
         run = ctx.client.run_workflow(

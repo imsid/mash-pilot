@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from mash.core.config import AgentConfig
-from mash.runtime import SubAgentMetadata
+from mash.runtime import AgentMetadata
 from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
@@ -38,8 +38,8 @@ class WorkflowCopilotSpec(CopilotAgentSpec):
         return self._build_copilot_config(WORKFLOW_COPILOT_AGENT_ID)
 
 
-def build_workflow_metadata() -> SubAgentMetadata:
-    return SubAgentMetadata(
+def build_workflow_metadata() -> AgentMetadata:
+    return AgentMetadata(
         display_name="Mash Workflow Copilot",
         description=(
             "Specialist for Mash host-level workflow specs, registry, DBOS-backed "

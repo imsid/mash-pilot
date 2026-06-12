@@ -60,7 +60,7 @@ characters.
 ### Start the Host
 
 ```bash
-mash host serve --host-app pilot.spec:build_host --port 8000
+mash host serve --host-app pilot.spec:build_pool --port 8000
 ```
 
 ### Connect the REPL
@@ -148,14 +148,19 @@ curl -fsSL https://raw.githubusercontent.com/imsid/mash-pilot/main/install.sh | 
 
 Pilot is a standard Mash application:
 
-- `pilot/spec.py` — Agent specs and `build_host()` entry point
+- `pilot/spec.py` — Agent specs, `build_pool()` entry point, and the `pilot` host composition
 - `pilot/cli.py` — Standalone CLI with default Render URL
 - `pilot/tools.py` — Custom tools (`UpdateDocsTool` with `requires_approval`)
 - `pilot/prompt.py` — System prompt construction
 - `pilot/changelog.py` — Dynamic changelog workflow
 - `pilot/skills/` — Skill markdown files
 
-The host runs one primary agent (`pilot`) and five subagents, all in-process.
-Subagent delegation, tool approval, and durable interactions are handled by the
-Mash runtime. See the [mashpy docs](https://github.com/imsid/mashpy) for
+The deployment is a flat pool of six agents (`pilot` plus five copilots) with
+a code-defined `pilot` host composed over it: `pilot` as primary, the copilots
+as subagents. Requests routed through the host (`POST /v1/hosts/pilot/request`)
+give the primary an `InvokeSubagent` tool and a directory of the copilots;
+bare requests to any agent run it alone. Subagent delegation, tool approval,
+and durable interactions are handled by the Mash runtime. The stock mash CLI
+can drive the same deployment with `mash connect` / `mash compose` /
+`mash repl`. See the [mashpy docs](https://github.com/imsid/mashpy) for
 framework details.
