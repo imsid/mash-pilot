@@ -11,6 +11,7 @@ from mash.core.config import AgentConfig
 from mash.core.llm import LLMProvider
 from mash.core.llm.anthropic import AnthropicProvider
 from mash.core.llm.openai import OpenAIProvider
+from mash.runtime import AgentMetadata
 from mash.runtime.spec import AgentSpec
 from mash.skills.base import Skill
 from mash.skills.registry import SkillRegistry
@@ -19,13 +20,14 @@ from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 from mash.workflows import TaskSpec, WorkflowSpec
 
-from ..prompt import build_repo_context
+from ...prompt import build_repo_context
+from .._base import PILOT_SKILLS_DIR
 
 QUIZ_AGENT_ID = "quiz-me"
 QUIZ_WORKFLOW_ID = "pilot-quiz"
 QUIZ_TASK_ID = "run-quiz"
 QUIZ_SKILL_NAME = "mash-quiz"
-QUIZ_SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
+QUIZ_SKILLS_DIR = PILOT_SKILLS_DIR
 
 QUIZ_DOC_ROOTS = (
     "src/mash/core",
@@ -173,13 +175,38 @@ class QuizAgentSpec(AgentSpec):
         return False
 
 
-def build_quiz_workflow_spec(quiz_spec: QuizAgentSpec) -> WorkflowSpec:
+def create_spec(*, workspace_root: str) -> QuizAgentSpec:
+    return QuizAgentSpec(Path(workspace_root).resolve())
+
+
+def build_metadata() -> AgentMetadata:
+    return AgentMetadata(
+        display_name="Quiz Me",
+        description=(
+            "Interactive quiz about Mash internals: three questions of "
+            "increasing difficulty, follow-ups welcome. Runs the "
+            f"`{QUIZ_WORKFLOW_ID}` workflow task."
+        ),
+        capabilities=[
+            "interactive mash quiz",
+            f"workflow `{QUIZ_WORKFLOW_ID}`",
+        ],
+        usage_guidance=(
+            f"Only useful through the `{QUIZ_WORKFLOW_ID}` workflow (the "
+            "/quiz command); it refuses free-form chat. Attach the workflow "
+            "to a host to enable it there. Not a delegation target."
+        ),
+    )
+
+
+def build_quiz_workflow_spec() -> WorkflowSpec:
+    """The pilot-quiz definition: one task executed by the pooled quiz agent."""
     return WorkflowSpec(
         workflow_id=QUIZ_WORKFLOW_ID,
         tasks=[
             TaskSpec(
                 task_id=QUIZ_TASK_ID,
-                agent_spec=quiz_spec,
+                agent_id=QUIZ_AGENT_ID,
             )
         ],
         metadata={"source": "pilot", "kind": "quiz"},

@@ -17,6 +17,9 @@ from ..prompt import build_base_prompt, build_repo_context
 
 APP_NAME = "Mash Pilot"
 
+# pilot/skills — shared by every catalog agent that registers custom skills.
+PILOT_SKILLS_DIR = Path(__file__).resolve().parents[1] / "skills"
+
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 

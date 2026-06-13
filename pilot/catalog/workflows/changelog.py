@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from mash.cli.commands import Command
+
+from .._base import PILOT_SKILLS_DIR
 
 CHANGELOG_WORKFLOW_ID = "pilot-changelog"
 CHANGELOG_TASK_ID = "scan-recent-commits"
 CHANGELOG_SKILL_NAME = "workflow:pilot-changelog:v1"
 DEFAULT_CHANGELOG_COMMIT_COUNT = 5
-CHANGELOG_SKILL_PATH = Path(__file__).resolve().parent.parent / "skills" / "changelog" / "SKILL.md"
+CHANGELOG_SKILL_PATH = PILOT_SKILLS_DIR / "changelog" / "SKILL.md"
 CHANGELOG_STRUCTURED_OUTPUT = {
     "title": "PilotChangelogWorkflowOutput",
     "type": "object",
