@@ -1,6 +1,6 @@
-"""Mash Guide — a primary codebase guide plus five module copilots (`cli`,
-`api`, `mcp`, `runtime`, `workflow`). Their composition into the
-`mash-guide` host ships as the default entry in the CLI's host config file
+"""Pilot — the primary Mash codebase guide plus five module copilots (`cli`,
+`api`, `mcp`, `runtime`, `workflow`). Their composition into the `guide`
+host ships as the default entry in the CLI's host config file
 (`pilot.store`), not in code."""
 
 from __future__ import annotations
@@ -19,19 +19,19 @@ from mash.tools.ask_user import AskUserTool
 from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
-from ...prompt import build_base_prompt, build_repo_context
-from ...tools import UpdateDocsTool
-from .._base import APP_NAME, PILOT_SKILLS_DIR, scope_doc_paths
-from .api import API_COPILOT_AGENT_ID
-from .cli import CLI_COPILOT_AGENT_ID
-from .mcp import MCP_COPILOT_AGENT_ID
-from .runtime import RUNTIME_COPILOT_AGENT_ID
-from .workflow import WORKFLOW_COPILOT_AGENT_ID
+from ....prompt import build_base_prompt, build_repo_context
+from ....tools import UpdateDocsTool
+from ..._base import APP_NAME, PILOT_SKILLS_DIR, scope_doc_paths
+from ..api import API_COPILOT_AGENT_ID
+from ..cli import CLI_COPILOT_AGENT_ID
+from ..mcp import MCP_COPILOT_AGENT_ID
+from ..runtime import RUNTIME_COPILOT_AGENT_ID
+from ..workflow import WORKFLOW_COPILOT_AGENT_ID
 
-MASH_GUIDE_AGENT_ID = "mash-guide"
+PILOT_AGENT_ID = "pilot"
 DEFAULT_SUBAGENT_TIMEOUT_MS = 360_000
 
-MASH_GUIDE_DOC_ROOTS = (
+PILOT_DOC_ROOTS = (
     "src/mash/core",
     "src/mash/tools",
     "src/mash/skills",
@@ -39,7 +39,7 @@ MASH_GUIDE_DOC_ROOTS = (
     "src/mash/memory",
     "src/mash/agents/masher",
 )
-MASH_GUIDE_EXTRA_DOC_PATHS = (
+PILOT_EXTRA_DOC_PATHS = (
     "README.md",
     "src/mash/README.md",
     "docs/posts/product-brief.md",
@@ -55,14 +55,14 @@ GITHUB_MCP_URL = os.getenv("GITHUB_MCP_URL") or "https://api.githubcopilot.com/m
 GITHUB_MCP_PAT = os.getenv("GITHUB_MCP_PAT")
 GITHUB_MCP_CONNECTION_NAME = "github"
 
-class MashGuideSpec(AgentSpec):
+class PilotSpec(AgentSpec):
     """Primary guide specialized in the Mash codebase."""
 
     def __init__(self, workspace_root: Path) -> None:
         self.workspace_root = workspace_root.resolve()
 
     def get_agent_id(self) -> str:
-        return MASH_GUIDE_AGENT_ID
+        return PILOT_AGENT_ID
 
     def build_tools(self) -> ToolRegistry:
         tools = ToolRegistry()
@@ -132,8 +132,8 @@ class MashGuideSpec(AgentSpec):
             repo=str(self.workspace_root),
             cached_files=scope_doc_paths(
                 self.workspace_root,
-                doc_roots=MASH_GUIDE_DOC_ROOTS,
-                extra_doc_paths=MASH_GUIDE_EXTRA_DOC_PATHS,
+                doc_roots=PILOT_DOC_ROOTS,
+                extra_doc_paths=PILOT_EXTRA_DOC_PATHS,
             ),
         )
         if repo_context:
@@ -148,20 +148,20 @@ class MashGuideSpec(AgentSpec):
 
     def build_agent_config(self) -> AgentConfig:
         return AgentConfig(
-            app_id=MASH_GUIDE_AGENT_ID,
+            app_id=PILOT_AGENT_ID,
             system_prompt=self.build_system_prompt(),
             skills_enabled=True,
             temperature=0.2,
         )
 
 
-def create_spec(*, workspace_root: str) -> MashGuideSpec:
-    return MashGuideSpec(Path(workspace_root).resolve())
+def create_spec(*, workspace_root: str) -> PilotSpec:
+    return PilotSpec(Path(workspace_root).resolve())
 
 
 def build_metadata() -> AgentMetadata:
     return AgentMetadata(
-        display_name="Mash Guide",
+        display_name="Pilot Guide",
         description=(
             "Primary Mash codebase guide; handles core, tools, skills, logging, "
             "memory, and cross-cutting questions."

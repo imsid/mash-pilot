@@ -31,5 +31,4 @@ include = ["pilot*"]
 "pilot" = [
   "skills/*.md",
   "skills/*/SKILL.md",
-  "catalog/personal/finance_watch/*.csv",
 ]
