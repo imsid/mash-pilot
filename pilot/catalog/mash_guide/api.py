@@ -10,7 +10,7 @@ from mash.runtime import AgentMetadata
 from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
-from ._base import CopilotAgentSpec
+from .._base import CopilotAgentSpec
 
 API_COPILOT_AGENT_ID = "api-copilot"
 API_DOC_ROOTS = ("src/mash/api",)

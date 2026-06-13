@@ -1,114 +1,134 @@
 # Contributing to Pilot
 
-This guide covers local development, deploying to Render, and releasing
-standalone CLI binaries.
+This guide covers local development, running the host with Docker Compose,
+publishing an agent to the catalog, and releasing standalone CLI binaries.
 
 ## Local Development
 
+This is the loop for working on the catalog, the CLI, or the specs: run the
+host from source so code changes don't need an image rebuild.
+
 ### Prerequisites
 
-- Python >= 3.10
-- [uv](https://docs.astral.sh/uv/) (recommended) or pip
-- PostgreSQL >= 14
+- [uv](https://docs.astral.sh/uv/) (manages Python and the venv from
+  `uv.lock`)
+- Docker (for Postgres)
 - An Anthropic API key
-- A local clone of [mashpy](https://github.com/imsid/mashpy)
+- A local clone of [mashpy](https://github.com/imsid/mashpy) — the source
+  tree the Pilot agents operate on
 
-### Install
+### Setup
 
 ```bash
 cd mash-pilot
-uv venv
-uv pip install -e .
+uv sync                              # create the venv from uv.lock
+docker compose up -d db              # Postgres only, published on 127.0.0.1:5433
+cp .env.example .env
 ```
 
-### Start PostgreSQL
-
-```bash
-docker run -d --name mash-pg \
-  -e POSTGRES_DB=mash_pilot \
-  -e POSTGRES_USER=mash \
-  -e POSTGRES_PASSWORD=mash \
-  -p 5433:5432 \
-  postgres:17-alpine
-```
-
-### Configure Environment
-
-Create a `.env` file in the repo root:
+In `.env`, set `ANTHROPIC_API_KEY` and uncomment the local-development
+block:
 
 ```
 MASH_DATABASE_URL=postgresql://mash:mash@127.0.0.1:5433/mash_pilot
-ANTHROPIC_API_KEY=sk-ant-...
 PILOT_WORKSPACE_ROOT=/path/to/mashpy
-GITHUB_MCP_PAT=ghp_...
 ```
 
-`PILOT_WORKSPACE_ROOT` must point at a local clone of the mashpy repository.
-The Pilot agents operate on this source tree — reading READMEs, running bash
-commands, and inspecting git history.
+The database is `mash_pilot` with an underscore — everything else in this
+project is `mash-pilot` with a hyphen, so this is an easy one to typo
+(Postgres will report `database "mash-pilot" does not exist`).
 
-`GITHUB_MCP_PAT` is a GitHub personal access token used to connect to the
-GitHub MCP server. The pilot agent uses it to inspect commits and history on
-the mashpy repository. Generate one at
-**Settings → Developer settings → Personal access tokens** with `repo` scope.
-If omitted, the MCP server is skipped and the agent loses access to GitHub
-tools like `list_commits` and `get_commit`.
+`GITHUB_MCP_PAT` is optional: a GitHub personal access token (generate one
+at **Settings → Developer settings → Personal access tokens**, `repo`
+scope) that powers the `morning-brief` agent and `mash-guide`'s commit
+inspection tools. Without it both agents still register; morning-brief
+reports itself unconfigured.
 
 Do not quote values in `.env` — `python-dotenv` treats quotes as literal
 characters.
 
-### Start the Host
+### Run
 
 ```bash
-mash host serve --host-app pilot.spec:build_pool --port 8000
+uv run pilot serve --workspace-root /path/to/mashpy
 ```
 
-### Connect the REPL
-
-In another terminal (with the same venv activated):
+(`mash host serve --host-app pilot.spec:build_pool --port 8000` is the
+stock-CLI equivalent.) Then, in another terminal:
 
 ```bash
-pilot repl
+uv run pilot browse                  # the pool + configured hosts
+uv run pilot repl --host mash-guide  # enter the default composition
 ```
 
 The CLI defaults to `http://127.0.0.1:8000`.
 
-## Deploying to Render
+## The Docker Image
 
-The repo includes a [Render Blueprint](render.yaml) that provisions the Pilot
-host and a managed Postgres instance.
+The published image (`ghcr.io/imsid/mash-pilot`) is dual-mode, selected by
+`MASH_DATABASE_URL` in `docker-entrypoint.sh`:
 
-### Setup
+- **unset** — single-container mode: the entrypoint initializes and starts
+  an embedded Postgres on the data volume (`$PILOT_DATA_DIR/pg`), then runs
+  the host. This is the README quick start.
+- **set** — external-database mode: the embedded Postgres is skipped
+  entirely and the host connects to yours. Use this when you want the
+  database managed separately or scaled independently.
 
-1. Push this repo to GitHub.
-2. Go to [Render Dashboard](https://dashboard.render.com) → **New** →
-   **Blueprint**.
-3. Connect the `mash-pilot` repo and select the branch.
-4. Render detects `render.yaml` and shows the services to create:
-   - **pilot** — Web Service (Docker)
-   - **pilot-db** — PostgreSQL
-5. Set the `ANTHROPIC_API_KEY` secret when prompted.
-6. Click **Apply**.
+`docker compose up -d` runs the external-database mode locally: one Postgres
+container plus the Pilot host built from source (`cp .env.example .env`
+first). This is the standard dev loop for working on the image or catalog.
 
-Render builds the Docker image, provisions Postgres, injects
-`MASH_DATABASE_URL` automatically, and starts the host. The Dockerfile clones
-the [mashpy](https://github.com/imsid/mashpy) repo into the container so the
-Pilot agents have the source tree to operate on.
+The Docker build clones the [mashpy](https://github.com/imsid/mashpy) repo
+into the image so the Pilot agents have the source tree to operate on;
+rebuild with `docker compose build --no-cache pilot` to pick up new mashpy
+commits.
 
-### Auto-Deploy
+`GET /api/v1/health` reports readiness, useful as a probe if you put the
+container behind a reverse proxy or orchestrator.
 
-Every push to the `mash-pilot` repo triggers a redeploy. The Docker build
-clones mashpy `main` at build time, so the agents get a fresh copy of the
-mashpy source on each mash-pilot deploy.
+## Publishing an Agent to the Catalog
 
-To also redeploy when mashpy changes, add a
-[Render Deploy Hook](https://docs.render.com/deploy-hooks) and trigger it from
-a GitHub Actions workflow in the mashpy repo.
+Adding an agent to the store is adding a package under `pilot/catalog/` and
+one entry to the `CATALOG` tuple.
 
-### Health Check
+1. **Create the package.** A directory under `pilot/catalog/` (personal
+   agents live under `pilot/catalog/personal/`) whose `__init__.py` exports
+   two callables:
 
-Render uses `/api/v1/health` to verify the service is ready before routing
-traffic.
+   ```python
+   def create_spec(*, workspace_root: str) -> AgentSpec: ...
+   def build_metadata() -> AgentMetadata: ...
+   ```
+
+   The spec is a standard Mash `AgentSpec` (tools, LLM, system prompt,
+   config). `finance_watch` is the smallest complete example;
+   `morning_brief` shows the MCP pattern.
+
+2. **Write the listing carefully.** The `AgentMetadata` is both the store
+   listing `pilot browse` renders and the delegation directory a primary
+   reads when your agent serves as a subagent. Vague `usage_guidance`
+   produces vague routing.
+
+3. **Register it.** Add one `CatalogEntry` to `CATALOG` in
+   `pilot/catalog/__init__.py`.
+
+4. **Degrade gracefully.** If the agent needs credentials, register it
+   unconditionally and gate the capability: return `[]` from
+   `build_mcp_servers()` when unconfigured and let the system prompt explain
+   what to set (see `morning_brief`). The catalog should always be fully
+   browsable.
+
+5. **Ship data files as package data.** Add globs to
+   `[tool.setuptools.package-data]` in `pyproject.toml` (see the
+   `finance_watch` sample ledger) so the Docker `pip install .` includes
+   them.
+
+Rebuild the deployment (`docker compose build pilot && docker compose up -d`)
+and the new listing appears in `pilot browse`, ready to be composed into
+hosts. Workflow definitions (like `pilot-quiz`) are registered post-build in
+`pilot/spec.py`; host configs attach them by id and the REPL enables the
+matching command (`/quiz`) only in hosts that do.
 
 ## Releasing CLI Binaries
 
@@ -120,7 +140,12 @@ git push origin v0.2.0
 ```
 
 GitHub Actions builds `pilot` binaries for macOS (arm64) and Linux (x86_64)
-via PyInstaller and uploads them to a GitHub Release.
+via PyInstaller and uploads them to a GitHub Release. The same tag also
+triggers the Docker workflow, which publishes the multi-arch
+(amd64 + arm64) image to `ghcr.io/imsid/mash-pilot` tagged `latest` and the
+version. One-time setup: after the first push, set the GHCR package to
+public in the repo's package settings so `docker run` works without
+authentication.
 
 ### Re-tagging a Release
 
@@ -148,19 +173,28 @@ curl -fsSL https://raw.githubusercontent.com/imsid/mash-pilot/main/install.sh | 
 
 Pilot is a standard Mash application:
 
-- `pilot/spec.py` — Agent specs, `build_pool()` entry point, and the `pilot` host composition
-- `pilot/cli.py` — Standalone CLI with default Render URL
+- `pilot/catalog/` — The agent catalog: each package is one store listing
+  (`mash_guide/` plus its copilots, `personal/`, and `workflows/` for
+  workflow-only agents), registered through the explicit `CATALOG` tuple in
+  `catalog/__init__.py`
+- `pilot/spec.py` — `build_pool()`: registers the catalog as a flat pool
+  (no built-in hosts)
+- `pilot/cli.py` — Standalone CLI, defaulting to `http://127.0.0.1:8000`
+- `pilot/store.py` — The host config file (`~/.pilot/hosts.json`): the
+  source of truth for compositions, seeded with `mash-guide`, published to
+  the deployment on REPL entry
 - `pilot/tools.py` — Custom tools (`UpdateDocsTool` with `requires_approval`)
 - `pilot/prompt.py` — System prompt construction
-- `pilot/changelog.py` — Dynamic changelog workflow
 - `pilot/skills/` — Skill markdown files
 
-The deployment is a flat pool of six agents (`pilot` plus five copilots) with
-a code-defined `pilot` host composed over it: `pilot` as primary, the copilots
-as subagents. Requests routed through the host (`POST /v1/hosts/pilot/request`)
-give the primary an `InvokeSubagent` tool and a directory of the copilots;
-bare requests to any agent run it alone. Subagent delegation, tool approval,
-and durable interactions are handled by the Mash runtime. The stock mash CLI
-can drive the same deployment with `mash connect` / `mash compose` /
-`mash repl`. See the [mashpy docs](https://github.com/imsid/mashpy) for
-framework details.
+The deployment is a flat pool of eight agents — two personal agents and the
+`mash-guide` family — with no built-in host compositions. Hosts are
+configuration: the CLI's config file holds them (seeded with the
+`mash-guide` composition), and entering a REPL publishes them over the host
+control API (`PUT /v1/hosts/{id}`, idempotent). Requests routed through a
+host (`POST /v1/hosts/{id}/request`) give the primary an `InvokeSubagent`
+tool and a directory of that host's subagents; bare requests to any agent
+run it alone. Subagent delegation, tool approval, and durable interactions
+are handled by the Mash runtime. The stock mash CLI can drive the same
+deployment with `mash connect` / `mash compose` / `mash repl`. See the
+[mashpy docs](https://github.com/imsid/mashpy) for framework details.

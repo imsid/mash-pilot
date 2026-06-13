@@ -1,14 +1,14 @@
 [project]
 name = "mash-pilot"
 version = "0.1.0"
-description = "Mash Pilot — a multi-agent codebase guide for the mashpy project."
+description = "Mash Pilot — a self-hosted app store for agents, built with the Mash SDK."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Proprietary"}
 authors = [{ name = "imsid" }]
 
 dependencies = [
-  "mashpy>=0.5.2",
+  "mashpy>=0.5.3",
   "python-dotenv>=1.0.0",
 ]
 
@@ -28,4 +28,8 @@ build-backend = "setuptools.build_meta"
 include = ["pilot*"]
 
 [tool.setuptools.package-data]
-"pilot" = ["skills/*.md", "skills/*/SKILL.md"]
+"pilot" = [
+  "skills/*.md",
+  "skills/*/SKILL.md",
+  "catalog/personal/finance_watch/*.csv",
+]
