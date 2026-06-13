@@ -18,7 +18,7 @@ from mash.cli.render import RichRenderer
 from mash.cli.shell import MashRemoteShell, ShellTarget
 
 from . import store
-from .catalog.mash_guide import MASH_GUIDE_AGENT_ID
+from .catalog.agents.pilot import PILOT_AGENT_ID
 from .catalog.workflows.changelog import register_changelog_command
 from .catalog.workflows.quiz import QUIZ_WORKFLOW_ID, register_quiz_command
 
@@ -282,9 +282,9 @@ def _run_repl(
     # (default_commands reads ctx.host_id).
     shell = MashRemoteShell(client, target)
     # Pilot's commands are scoped too: /changelog registers its dynamic
-    # workflow on the session's target agent, and only makes sense on
-    # mash-guide; /quiz exists only in hosts that attach pilot-quiz.
-    if agent_id == MASH_GUIDE_AGENT_ID:
+    # workflow on the session's target agent, and only makes sense on the
+    # `pilot` primary; /quiz exists only in hosts that attach pilot-quiz.
+    if agent_id == PILOT_AGENT_ID:
         register_changelog_command(shell)
     if QUIZ_WORKFLOW_ID in host_workflows:
         register_quiz_command(shell)

@@ -40,9 +40,8 @@ project is `mash-pilot` with a hyphen, so this is an easy one to typo
 
 `GITHUB_MCP_PAT` is optional: a GitHub personal access token (generate one
 at **Settings → Developer settings → Personal access tokens**, `repo`
-scope) that powers the `morning-brief` agent and `mash-guide`'s commit
-inspection tools. Without it both agents still register; morning-brief
-reports itself unconfigured.
+scope) that powers the `pilot` guide's commit-inspection tools. Without it
+the guide still registers; it simply runs without the GitHub MCP tools.
 
 Do not quote values in `.env` — `python-dotenv` treats quotes as literal
 characters.
@@ -50,18 +49,16 @@ characters.
 ### Run
 
 ```bash
-uv run pilot serve --workspace-root /path/to/mashpy
-```
-
-(`mash host serve --host-app pilot.spec:build_pool --port 8000` is the
-stock-CLI equivalent.) Then, in another terminal:
+mash host serve --host-app pilot.spec:build_pool --port 8001
+``` 
+Then, in another terminal:
 
 ```bash
-uv run pilot browse                  # the pool + configured hosts
-uv run pilot repl --host mash-guide  # enter the default composition
+pilot browse                  # the pool + configured hosts
+pilot repl --host guide       # enter the default composition
 ```
 
-The CLI defaults to `http://127.0.0.1:8000`.
+The CLI defaults to `http://127.0.0.1:8001`.
 
 ## The Docker Image
 
@@ -89,12 +86,12 @@ container behind a reverse proxy or orchestrator.
 
 ## Publishing an Agent to the Catalog
 
-Adding an agent to the store is adding a package under `pilot/catalog/` and
-one entry to the `CATALOG` tuple.
+Adding an agent to the store is adding a package under
+`pilot/catalog/agents/` and one entry to the `CATALOG` tuple.
 
-1. **Create the package.** A directory under `pilot/catalog/` (personal
-   agents live under `pilot/catalog/personal/`) whose `__init__.py` exports
-   two callables:
+1. **Create the package.** A directory under `pilot/catalog/agents/<name>/`
+   with a `spec.py` implementation and an `__init__.py` that re-exports the
+   agent id plus two callables:
 
    ```python
    def create_spec(*, workspace_root: str) -> AgentSpec: ...
@@ -102,8 +99,9 @@ one entry to the `CATALOG` tuple.
    ```
 
    The spec is a standard Mash `AgentSpec` (tools, LLM, system prompt,
-   config). `finance_watch` is the smallest complete example;
-   `morning_brief` shows the MCP pattern.
+   config). The `cli` copilot is the smallest complete example; the `pilot`
+   primary shows the MCP pattern (`build_mcp_servers`) and subagent
+   delegation.
 
 2. **Write the listing carefully.** The `AgentMetadata` is both the store
    listing `pilot browse` renders and the delegation directory a primary
@@ -116,13 +114,12 @@ one entry to the `CATALOG` tuple.
 4. **Degrade gracefully.** If the agent needs credentials, register it
    unconditionally and gate the capability: return `[]` from
    `build_mcp_servers()` when unconfigured and let the system prompt explain
-   what to set (see `morning_brief`). The catalog should always be fully
+   what to set (see the `pilot` primary). The catalog should always be fully
    browsable.
 
 5. **Ship data files as package data.** Add globs to
    `[tool.setuptools.package-data]` in `pyproject.toml` (see the
-   `finance_watch` sample ledger) so the Docker `pip install .` includes
-   them.
+   `pilot/skills` entries) so the Docker `pip install .` includes them.
 
 Rebuild the deployment (`docker compose build pilot && docker compose up -d`)
 and the new listing appears in `pilot browse`, ready to be composed into
@@ -174,23 +171,24 @@ curl -fsSL https://raw.githubusercontent.com/imsid/mash-pilot/main/install.sh | 
 Pilot is a standard Mash application:
 
 - `pilot/catalog/` — The agent catalog: each package is one store listing
-  (`mash_guide/` plus its copilots, `personal/`, and `workflows/` for
+  (`agents/` holds the `pilot` primary and its copilots; `workflows/` holds
   workflow-only agents), registered through the explicit `CATALOG` tuple in
   `catalog/__init__.py`
 - `pilot/spec.py` — `build_pool()`: registers the catalog as a flat pool
   (no built-in hosts)
 - `pilot/cli.py` — Standalone CLI, defaulting to `http://127.0.0.1:8000`
 - `pilot/store.py` — The host config file (`~/.pilot/hosts.json`): the
-  source of truth for compositions, seeded with `mash-guide`, published to
+  source of truth for compositions, seeded with `guide`, published to
   the deployment on REPL entry
 - `pilot/tools.py` — Custom tools (`UpdateDocsTool` with `requires_approval`)
 - `pilot/prompt.py` — System prompt construction
 - `pilot/skills/` — Skill markdown files
 
-The deployment is a flat pool of eight agents — two personal agents and the
-`mash-guide` family — with no built-in host compositions. Hosts are
-configuration: the CLI's config file holds them (seeded with the
-`mash-guide` composition), and entering a REPL publishes them over the host
+The deployment is a flat pool of seven agents — the `pilot` guide family (a
+primary plus five module copilots) and the `quiz-me` workflow agent — with
+no built-in host compositions. Hosts are configuration: the CLI's config
+file holds them (seeded with the `guide` composition), and entering a REPL
+publishes them over the host
 control API (`PUT /v1/hosts/{id}`, idempotent). Requests routed through a
 host (`POST /v1/hosts/{id}/request`) give the primary an `InvokeSubagent`
 tool and a directory of that host's subagents; bare requests to any agent

@@ -4,7 +4,7 @@ The deployment is a flat pool of agents with no built-in hosts. Compositions
 live in `~/.pilot/hosts.json`: `pilot compose` writes them, `pilot hosts`
 and `pilot browse` list them, and `pilot repl --host <id>` publishes them to
 the deployment (idempotent PUTs) before connecting. On first use the file is
-seeded with the `mash-guide` composition so the store works out of the box.
+seeded with the `guide` composition so the store works out of the box.
 """
 
 from __future__ import annotations
@@ -17,8 +17,8 @@ from typing import Any, Iterable
 # Seeded into the config file on first use. Plain agent-id strings: this is
 # user-editable configuration, not code.
 DEFAULT_HOSTS: dict[str, dict[str, Any]] = {
-    "mash-guide": {
-        "primary": "mash-guide",
+    "guide": {
+        "primary": "pilot",
         "subagents": [
             "cli-copilot",
             "api-copilot",
