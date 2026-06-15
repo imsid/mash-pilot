@@ -167,6 +167,37 @@ tools.register(BashTool(working_dir="/path/to/workspace"))
 tools.register(AskUserTool())  # durable user questions (hosted runtime only)
 ```
 
+### Web Search
+
+To give an agent web search, flip `enable_web_search_tools()` on the spec
+instead of registering a tool by hand. It's off by default because the tools
+make network calls. When enabled, the agent gets `web_search` and `web_fetch`,
+backed by Parallel AI:
+
+```python
+class ResearchAgent(AgentSpec):
+    def enable_web_search_tools(self) -> bool:
+        return True
+```
+
+That uses Parallel's free no-auth tier. To raise the limits, supply a key or an
+OAuth token. The provider reads `PARALLEL_API_KEY` and `PARALLEL_OAUTH_TOKEN`
+from the environment, or you can pass them directly:
+
+```python
+from mash.tools.web_search import ParallelSearchProvider
+
+class ResearchAgent(AgentSpec):
+    def enable_web_search_tools(self) -> bool:
+        return True
+
+    def build_web_search(self):
+        return ParallelSearchProvider(api_key="...")  # or oauth_token="..."
+```
+
+A token is sent as `Authorization: Bearer <token>`; there is no interactive
+OAuth2 flow. Override `build_web_search()` to point at a different provider.
+
 ### Tool Approval
 
 Set `requires_approval = True` on any tool that should pause for user consent
@@ -195,17 +226,29 @@ API keys are read from environment variables: `ANTHROPIC_API_KEY`,
 
 ## Step 4: Configure Agent Behavior
 
+`AgentConfig` carries every behavior knob. `app_id` and `system_prompt` are
+required; the rest have the defaults shown here.
+
 ```python
 AgentConfig(
-    app_id="my-agent",
-    system_prompt="You are ...",          # required — defines agent personality
-    max_steps=50,                         # max tool-use loops per request
-    max_tokens=4096,                      # LLM output token cap
+    app_id="my-agent",                    # required, must match get_agent_id()
+    system_prompt="You are ...",          # required, str or list of content blocks
+    max_steps=30,                         # max tool-use loops per request
+    max_tokens=4096,                      # LLM output token cap per response
     temperature=1.0,                      # sampling temperature
-    skills_enabled=False,                 # set True to enable Skill meta-tool
-    conversation_history_turns=3,         # how many prior turns to include
+    skills_enabled=True,                  # set False to disable the Skill meta-tool
+    prompt_caching_enabled=True,          # cache the system prompt + tools with the provider
+    streaming_enabled=True,               # stream tokens and emit llm.response.delta events
+    conversation_history_turns=3,         # prior turns replayed into context
+    compaction_token_threshold=0,         # summarize history past this token count (0 = off)
+    compaction_turn_limit=50,             # how many recent turns the summary keeps when compaction runs
+    compaction_temperature=0.0,           # sampling temperature for the summary pass
+    extra={},                             # free-form dict for provider/app-specific options
 )
 ```
+
+Compaction is off by default; set `compaction_token_threshold` to a positive
+value to have long sessions summarized automatically.
 
 ### System Prompt Tips
 
@@ -402,6 +445,8 @@ response = await runtime.submit_request(
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `GEMINI_API_KEY` or `GOOGLE_API_KEY` | Google Gemini API key |
+| `PARALLEL_API_KEY` | Parallel AI key for web search (optional; free tier needs none) |
+| `PARALLEL_OAUTH_TOKEN` | Parallel AI OAuth token for web search (optional) |
 | `MASH_DATABASE_URL` | Postgres URL for memory/runtime stores |
 | `MASH_DATA_DIR` | Persistent data directory (default: `/var/lib/mash`) |
 | `MASH_API_KEY` | API key for the hosted server |
