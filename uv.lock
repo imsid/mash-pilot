@@ -767,7 +767,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mashpy", specifier = ">=0.5.3" },
+    { name = "mashpy", specifier = ">=0.6.0" },
     { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
@@ -775,7 +775,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "mashpy"
-version = "0.5.3"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiosqlite" },
@@ -796,9 +796,9 @@ dependencies = [
     { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f8/df/08ceee9014a690a1a4a2b48005bb2c9712fcbe6113df917a9118e3bf0fa4/mashpy-0.5.3.tar.gz", hash = "sha256:8db789d07753c5f99fe091e16515e0d0e2456d68ecd841de968918a3e39b83d2", size = 222798 }
+sdist = { url = "https://files.pythonhosted.org/packages/80/cd/b2651d36bdafa74ab1db07db99776080761d9039826abf16679a154c7182/mashpy-0.6.0.tar.gz", hash = "sha256:3a81ab58da3d9e5479094ec9a6a6dddcb74556ca570c03150d0a9b4939f38d2e", size = 226985 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f1/b7/8c5677c7e5caaf55c1aa6fe5e3e3fe8c5091429688d0b63bd3111a763b5a/mashpy-0.5.3-py3-none-any.whl", hash = "sha256:dafd30694e9775fbd251934c948fae1a00fda7f373cd1ee97974c3ed5b969af8", size = 270220 },
+    { url = "https://files.pythonhosted.org/packages/6f/f7/d2216b3b546e652aa273ad5dede4d2457aa46eef40e1429bdcf7810eddb6/mashpy-0.6.0-py3-none-any.whl", hash = "sha256:12b70ca36877fd95ea7085935a84d835519356a9014c045c06631eb5396b0b98", size = 275177 },
 ]
 
 [[package]]
