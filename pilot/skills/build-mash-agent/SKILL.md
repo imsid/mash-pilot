@@ -420,6 +420,32 @@ hood (delegation, per-request role wiring, mirrored traces), read
 `docs/posts/composing-agents.md`; for driving composition purely over HTTP,
 `docs/posts/building-dynamic-hosts-apis.md`.
 
+## Collecting Feedback
+
+The REPL ships a `/feedback` command. A user types a note or bug report and it
+is saved with the session context, no LLM step involved:
+
+```bash
+mash repl
+› /feedback the trace output is hard to read
+✓ Feedback recorded (session s-1, request r-9)
+```
+
+The message lands in a `runtime_feedback` table in the runtime store, tagged
+with the host, agent, session, and last request id from that shell. Read it
+back over the API to inspect reports across sessions:
+
+```bash
+# after is a required unix timestamp lower bound; pass 0 to read from the start
+curl "http://127.0.0.1:8000/api/v1/feedback?agent_id=assistant&after=0"
+
+# narrow it: full-text q over the message, plus before / session_id / feedback_type / limit
+curl "http://127.0.0.1:8000/api/v1/feedback?agent_id=assistant&after=0&q=trace"
+```
+
+`POST /api/v1/feedback` records feedback programmatically (`agent_id` and
+`message` required). Neither route depends on `enable_observability`.
+
 ## Structured Output
 
 To get typed JSON responses from agents:
