@@ -35,7 +35,9 @@ From the user's prompt, determine:
    "code reviewer", "data pipeline orchestrator")
 2. **Tools needed** — what actions the agent can take (bash, web search,
    database queries, API calls, file operations, etc.)
-3. **LLM provider** — Anthropic (default), OpenAI, or Google Gemini
+3. **LLM provider** — a frontier model (Anthropic default, OpenAI, Gemini) or an
+   open-source model (Gemma, Qwen, DeepSeek, Llama) served over a Chat
+   Completions endpoint
 4. **Multi-agent** — does the user need several specialists composed into a
    host, with a primary delegating to subagents?
 5. **Workflows** — does the user need ordered task pipelines?
@@ -223,6 +225,47 @@ llm = GeminiProvider(app_id="my-agent", model="gemini-2.5-pro")
 API keys are read from environment variables: `ANTHROPIC_API_KEY`,
 `OPENAI_API_KEY`, `GEMINI_API_KEY` (or `GOOGLE_API_KEY`). You can also pass
 `api_key=` explicitly.
+
+### Open-source models
+
+`OSSCompatibleProvider` runs open-source models through the same harness over any
+OpenAI Chat Completions endpoint: self-hosted with vLLM, Ollama, or llama.cpp, or
+a hosted gateway like OpenRouter, Together, or Groq. Mash is the client; you run
+or pay for the endpoint. The model must be served with native tool calling so the
+runtime can pass `tools=` and read back `message.tool_calls`; the latest Gemma,
+Qwen, DeepSeek, and Llama releases qualify. On a hosted gateway, pick a model
+whose route supports tool use.
+
+The presets `GemmaProvider`, `QwenProvider`, `DeepSeekProvider`, and
+`LlamaProvider` pin a default model and a capability profile. Pass `base_url`,
+and an `api_key` for a gateway:
+
+```python
+from mash.core.llm import (
+    OSSCompatibleProvider, GemmaProvider, QwenProvider, DeepSeekProvider, LlamaProvider,
+)
+
+# Self-hosted with Ollama on localhost (no key needed)
+llm = QwenProvider(app_id="my-agent", base_url="http://localhost:11434/v1")
+
+# Self-hosted with vLLM on a GPU box, explicit model
+llm = GemmaProvider(app_id="my-agent", model="google/gemma-4-27b-it",
+                    base_url="http://gpu-box:8000/v1")
+
+# Hosted gateway with a key
+import os
+llm = OSSCompatibleProvider(
+    app_id="my-agent",
+    model="deepseek/deepseek-chat",
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.environ["OPENROUTER_API_KEY"],
+)
+```
+
+`base_url` falls back to `OSS_BASE_URL` (default `http://localhost:11434/v1`,
+Ollama); the key falls back to `OSS_API_KEY`, or a placeholder when a self-hosted
+engine needs none. Each preset's default model comes from `GEMMA_MODEL`,
+`QWEN_MODEL`, `DEEPSEEK_MODEL`, or `LLAMA_MODEL`.
 
 ## Step 4: Configure Agent Behavior
 
@@ -471,6 +514,9 @@ response = await runtime.submit_request(
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `GEMINI_API_KEY` or `GOOGLE_API_KEY` | Google Gemini API key |
+| `OSS_BASE_URL` | Default Chat Completions endpoint for OSS providers (default `http://localhost:11434/v1`, Ollama) |
+| `OSS_API_KEY` | Key for a hosted OSS gateway (self-hosted engines need none) |
+| `GEMMA_MODEL` / `QWEN_MODEL` / `DEEPSEEK_MODEL` / `LLAMA_MODEL` | Default model id for each OSS preset |
 | `PARALLEL_API_KEY` | Parallel AI key for web search (optional; free tier needs none) |
 | `PARALLEL_OAUTH_TOKEN` | Parallel AI OAuth token for web search (optional) |
 | `MASH_DATABASE_URL` | Postgres URL for memory/runtime stores |
