@@ -171,34 +171,22 @@ tools.register(AskUserTool())  # durable user questions (hosted runtime only)
 
 ### Web Search
 
-To give an agent web search, flip `enable_web_search_tools()` on the spec
-instead of registering a tool by hand. It's off by default because the tools
-make network calls. When enabled, the agent gets `web_search` and `web_fetch`,
-backed by Parallel AI:
-
-```python
-class ResearchAgent(AgentSpec):
-    def enable_web_search_tools(self) -> bool:
-        return True
-```
-
-That uses Parallel's free no-auth tier. To raise the limits, supply a key or an
-OAuth token. The provider reads `PARALLEL_API_KEY` and `PARALLEL_OAUTH_TOKEN`
-from the environment, or you can pass them directly:
+To enable web search you must explicitly specify a provider by returning one
+from `build_web_search()`. It returns `None` by default, so web search is off,
+and there's no default provider — you always know who is handling your search
+data. Mash ships one `WebSearchProvider`, `ParallelSearchProvider`, which gives
+the agent `web_search` and `web_fetch` and requires an API key:
 
 ```python
 from mash.tools.web_search import ParallelSearchProvider
 
 class ResearchAgent(AgentSpec):
-    def enable_web_search_tools(self) -> bool:
-        return True
-
     def build_web_search(self):
         return ParallelSearchProvider(api_key="...")  # or oauth_token="..."
 ```
 
-A token is sent as `Authorization: Bearer <token>`; there is no interactive
-OAuth2 flow. Override `build_web_search()` to point at a different provider.
+Pass the key directly or set `PARALLEL_API_KEY` / `PARALLEL_OAUTH_TOKEN`;
+constructing the provider without one raises `ValueError`.
 
 ### Tool Approval
 
