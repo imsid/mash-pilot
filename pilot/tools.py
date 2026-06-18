@@ -13,6 +13,9 @@ class UpdateDocsTool:
 
     name = "update_docs"
     requires_approval = True
+    # Writes files and gates on approval, so it must not interleave with
+    # other tool calls in the same turn (mash 0.6.5 Tool protocol).
+    parallel_safe = False
     description = (
         "Write updated content to a README.md or AGENTS.md file. "
         "Requires explicit user approval before the file is modified."

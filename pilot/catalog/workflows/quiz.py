@@ -16,12 +16,11 @@ from mash.runtime.spec import AgentSpec
 from mash.skills.base import Skill
 from mash.skills.registry import SkillRegistry
 from mash.tools.ask_user import AskUserTool
-from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 from mash.workflows import TaskSpec, WorkflowSpec
 
 from ...prompt import build_repo_context
-from .._base import PILOT_SKILLS_DIR
+from .._base import PILOT_SKILLS_DIR, build_bash_tool
 
 QUIZ_AGENT_ID = "quiz-me"
 QUIZ_WORKFLOW_ID = "pilot-quiz"
@@ -108,7 +107,7 @@ class QuizAgentSpec(AgentSpec):
     def build_tools(self) -> ToolRegistry:
         tools = ToolRegistry()
         tools.register(AskUserTool())
-        tools.register(BashTool(working_dir=str(self.workspace_root)))
+        tools.register(build_bash_tool(self.workspace_root))
         return tools
 
     def build_skills(self) -> SkillRegistry:

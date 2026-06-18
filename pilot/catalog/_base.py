@@ -12,6 +12,8 @@ from mash.core.llm import LLMProvider
 from mash.core.llm.anthropic import AnthropicProvider
 from mash.runtime import AgentSpec
 from mash.skills.registry import SkillRegistry
+from mash.tools.base import Tool
+from mash.tools.bash import BashTool
 
 from ..prompt import build_base_prompt, build_repo_context
 
@@ -52,6 +54,23 @@ def scope_doc_paths(
                 doc_paths.append(resolved)
 
     return doc_paths
+
+
+class _BashTool(BashTool):
+    """BashTool that declares the mash 0.6.5 ``parallel_safe`` attribute.
+
+    mash 0.6.5 added a required ``parallel_safe`` attribute to the Tool
+    protocol but its own BashTool omits it, so the instance fails static
+    type checks. BashTool runs commands in a persistent shell session that
+    must not interleave, so it is not parallel-safe.
+    """
+
+    parallel_safe = False
+
+
+def build_bash_tool(workspace_root: Path) -> Tool:
+    """Construct a Tool-conformant BashTool scoped to ``workspace_root``."""
+    return _BashTool(working_dir=str(workspace_root))
 
 
 COMMON_COPILOT_RULES = (

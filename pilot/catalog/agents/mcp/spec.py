@@ -7,10 +7,9 @@ from typing import Any
 
 from mash.core.config import AgentConfig
 from mash.runtime import AgentMetadata
-from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
-from ..._base import CopilotAgentSpec
+from ..._base import CopilotAgentSpec, build_bash_tool
 
 MCP_COPILOT_AGENT_ID = "mcp-copilot"
 MCP_DOC_ROOTS = ("src/mash/mcp",)
@@ -24,7 +23,7 @@ class McpCopilotSpec(CopilotAgentSpec):
 
     def build_tools(self) -> ToolRegistry:
         tools = ToolRegistry()
-        tools.register(BashTool(working_dir=str(self.workspace_root)))
+        tools.register(build_bash_tool(self.workspace_root))
         return tools
 
     def build_system_prompt(self) -> list[dict[str, Any]]:
