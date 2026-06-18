@@ -16,12 +16,11 @@ from mash.mcp.types import MCPServerConfig
 from mash.runtime import AgentMetadata, AgentSpec
 from mash.skills.registry import SkillRegistry
 from mash.tools.ask_user import AskUserTool
-from mash.tools.bash import BashTool
 from mash.tools.registry import ToolRegistry
 
 from ....prompt import build_base_prompt, build_repo_context
 from ....tools import UpdateDocsTool
-from ..._base import APP_NAME, PILOT_SKILLS_DIR, scope_doc_paths
+from ..._base import APP_NAME, PILOT_SKILLS_DIR, build_bash_tool, scope_doc_paths
 from ..api import API_COPILOT_AGENT_ID
 from ..cli import CLI_COPILOT_AGENT_ID
 from ..mcp import MCP_COPILOT_AGENT_ID
@@ -66,7 +65,7 @@ class PilotSpec(AgentSpec):
 
     def build_tools(self) -> ToolRegistry:
         tools = ToolRegistry()
-        tools.register(BashTool(working_dir=str(self.workspace_root)))
+        tools.register(build_bash_tool(self.workspace_root))
         tools.register(UpdateDocsTool(workspace_root=str(self.workspace_root)))
         tools.register(AskUserTool())
         return tools
