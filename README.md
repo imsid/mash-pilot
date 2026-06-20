@@ -83,7 +83,7 @@ as the default `guide` entry in your host config file:
 |-------|-------|
 | `pilot` | Shared/cross-cutting: `core`, `tools`, `skills`, `logging`, `memory` |
 | `cli-copilot` | `src/mash/cli` — commands, REPL, terminal rendering |
-| `api-copilot` | `src/mash/api` — HTTP routes, FastAPI, telemetry UI |
+| `api-copilot` | `src/mash/api` — HTTP routes, FastAPI, admin dashboard |
 | `mcp-copilot` | `src/mash/mcp` — MCP client/server, transport, tool adaptation |
 | `runtime-copilot` | `src/mash/runtime` — request lifecycle, event sourcing, durability |
 | `workflow-copilot` | `src/mash/workflows` — DBOS orchestration, task state, run status |
@@ -164,11 +164,12 @@ The stock mash CLI drives the same deployment: `mash connect` /
 | `/changelog [N]` | Generate changelog from last N commits (sessions targeting the `pilot` primary) |
 | `/quiz` | Interactive quiz about Mash internals (hosts with the `pilot-quiz` workflow) |
 
-## Telemetry
+## Admin dashboard
 
-The host serves a telemetry UI for real-time visibility into agent execution
-at [http://127.0.0.1:8000/telemetry](http://127.0.0.1:8000/telemetry) (or
-`/telemetry` on whatever host you deployed).
+The host serves an admin dashboard for visibility into the agent pool, host
+compositions, and logs at
+[http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin) (or `/admin` on
+whatever host you deployed).
 
 ## Development & Deployment
 

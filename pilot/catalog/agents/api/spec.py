@@ -42,27 +42,28 @@ def build_api_metadata() -> AgentMetadata:
         display_name="Mash API Copilot",
         description=(
             "Specialist for the Mash hosted API surface, FastAPI app wiring, host "
-            "serving entrypoints, telemetry API endpoints, and telemetry UI integration."
+            "serving entrypoints, telemetry API endpoints, and admin dashboard integration."
         ),
         capabilities=[
             "src/mash/api",
             "host api",
-            "telemetry ui",
+            "admin dashboard",
             "fastapi app wiring",
             "host serving",
             "api configuration",
             "telemetry API endpoints",
             "/telemetry/traces",
             "/telemetry/trace/analysis",
+            "/telemetry/usage",
             "/telemetry/events",
             "/telemetry/events/stream",
             "/telemetry/memory/search",
         ],
         usage_guidance=(
             "Use for questions centered on the API app, host startup, HTTP-facing "
-            "configuration, telemetry UI assets, telemetry API endpoints "
-            "(traces, trace analysis, events, event streaming, memory search), "
-            "or other behavior implemented under `src/mash/api`."
+            "configuration, admin dashboard assets, telemetry API endpoints "
+            "(traces, trace analysis, usage aggregation, events, event streaming, "
+            "memory search), or other behavior implemented under `src/mash/api`."
         ),
     )
 
