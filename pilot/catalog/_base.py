@@ -10,6 +10,7 @@ from typing import Any, Sequence
 from mash.core.config import AgentConfig
 from mash.core.llm import LLMProvider
 from mash.core.llm.anthropic import AnthropicProvider
+from mash.core.llm.openai import OpenAIProvider
 from mash.runtime import AgentSpec
 from mash.skills.registry import SkillRegistry
 from mash.tools.base import Tool
@@ -22,8 +23,30 @@ APP_NAME = "Mash Pilot"
 # pilot/skills — shared by every catalog agent that registers custom skills.
 PILOT_SKILLS_DIR = Path(__file__).resolve().parents[1] / "skills"
 
-ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
+DEFAULT_OPENAI_MODEL = "gpt-5.4-2026-03-05"
+
+
+def build_default_llm(agent_id: str) -> LLMProvider:
+    """Pick an LLM provider from the environment at call time.
+
+    Anthropic wins when ``ANTHROPIC_API_KEY`` is set, otherwise fall through to
+    OpenAI when ``OPENAI_API_KEY`` is set. Each provider reads its own key from
+    the environment; the model is overridable via ``ANTHROPIC_MODEL`` /
+    ``OPENAI_MODEL``."""
+    if os.getenv("ANTHROPIC_API_KEY", "").strip():
+        return AnthropicProvider(
+            app_id=agent_id,
+            model=os.getenv("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL),
+        )
+    if os.getenv("OPENAI_API_KEY", "").strip():
+        return OpenAIProvider(
+            app_id=agent_id,
+            model=os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
+        )
+    raise RuntimeError(
+        f"Agent {agent_id!r} requires ANTHROPIC_API_KEY or OPENAI_API_KEY."
+    )
 
 
 def scope_doc_paths(
@@ -98,11 +121,7 @@ class CopilotAgentSpec(AgentSpec, abc.ABC):
         return SkillRegistry()
 
     def build_llm(self) -> LLMProvider:
-        return AnthropicProvider(
-            app_id=self.get_agent_id(),
-            model=ANTHROPIC_MODEL,
-            api_key=ANTHROPIC_API_KEY,
-        )
+        return build_default_llm(self.get_agent_id())
 
     def enable_runtime_tools(self) -> bool:
         return True

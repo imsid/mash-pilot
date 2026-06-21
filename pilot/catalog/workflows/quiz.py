@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any, Sequence
 
 from mash.cli.commands import Command
 from mash.core.config import AgentConfig
 from mash.core.llm import LLMProvider
-from mash.core.llm.anthropic import AnthropicProvider
-from mash.core.llm.openai import OpenAIProvider
 from mash.runtime import AgentMetadata
 from mash.runtime.spec import AgentSpec
 from mash.skills.base import Skill
@@ -20,7 +17,7 @@ from mash.tools.registry import ToolRegistry
 from mash.workflows import TaskSpec, WorkflowSpec
 
 from ...prompt import build_repo_context
-from .._base import PILOT_SKILLS_DIR, build_bash_tool
+from .._base import PILOT_SKILLS_DIR, build_bash_tool, build_default_llm
 
 QUIZ_AGENT_ID = "quiz-me"
 QUIZ_WORKFLOW_ID = "pilot-quiz"
@@ -124,17 +121,7 @@ class QuizAgentSpec(AgentSpec):
         return skills
 
     def build_llm(self) -> LLMProvider:
-        if os.getenv("ANTHROPIC_API_KEY", "").strip():
-            return AnthropicProvider(
-                app_id=QUIZ_AGENT_ID,
-                model=os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001"),
-            )
-        if os.getenv("OPENAI_API_KEY", "").strip():
-            return OpenAIProvider(
-                app_id=QUIZ_AGENT_ID,
-                model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
-            )
-        raise RuntimeError("Quiz agent requires ANTHROPIC_API_KEY or OPENAI_API_KEY.")
+        return build_default_llm(QUIZ_AGENT_ID)
 
     def build_system_prompt(self) -> list[dict[str, Any]]:
         blocks: list[dict[str, Any]] = [

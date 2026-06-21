@@ -6,4 +6,4 @@ build/
 .eggs/
 *.spec
 .env
-.*_history
+.pilot_remote_history

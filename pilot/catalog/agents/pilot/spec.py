@@ -11,7 +11,6 @@ from typing import Any
 
 from mash.core.config import AgentConfig
 from mash.core.llm import LLMProvider
-from mash.core.llm.anthropic import AnthropicProvider
 from mash.mcp.types import MCPServerConfig
 from mash.runtime import AgentMetadata, AgentSpec
 from mash.skills.registry import SkillRegistry
@@ -20,7 +19,13 @@ from mash.tools.registry import ToolRegistry
 
 from ....prompt import build_base_prompt, build_repo_context
 from ....tools import UpdateDocsTool
-from ..._base import APP_NAME, PILOT_SKILLS_DIR, build_bash_tool, scope_doc_paths
+from ..._base import (
+    APP_NAME,
+    PILOT_SKILLS_DIR,
+    build_bash_tool,
+    build_default_llm,
+    scope_doc_paths,
+)
 from ..api import API_COPILOT_AGENT_ID
 from ..cli import CLI_COPILOT_AGENT_ID
 from ..mcp import MCP_COPILOT_AGENT_ID
@@ -48,11 +53,10 @@ PILOT_EXTRA_DOC_PATHS = (
     "docs/rfcs/host-to-agent-protocol.md",
 )
 
-ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 GITHUB_MCP_URL = os.getenv("GITHUB_MCP_URL") or "https://api.githubcopilot.com/mcp/"
 GITHUB_MCP_PAT = os.getenv("GITHUB_MCP_PAT")
 GITHUB_MCP_CONNECTION_NAME = "github"
+
 
 class PilotSpec(AgentSpec):
     """Primary guide specialized in the Mash codebase."""
@@ -71,11 +75,7 @@ class PilotSpec(AgentSpec):
         return tools
 
     def build_llm(self) -> LLMProvider:
-        return AnthropicProvider(
-            app_id=self.get_agent_id(),
-            model=ANTHROPIC_MODEL,
-            api_key=ANTHROPIC_API_KEY,
-        )
+        return build_default_llm(self.get_agent_id())
 
     def build_mcp_servers(self) -> list[MCPServerConfig]:
         github_mcp_url = os.getenv("GITHUB_MCP_URL") or GITHUB_MCP_URL
