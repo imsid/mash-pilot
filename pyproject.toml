@@ -8,7 +8,7 @@ license = {text = "Proprietary"}
 authors = [{ name = "imsid" }]
 
 dependencies = [
-  "mashpy>=0.6.12",
+  "mashpy>=0.7.1",
   "python-dotenv>=1.0.0",
 ]
 
