@@ -13,7 +13,7 @@ host from source so code changes don't need an image rebuild.
 - [uv](https://docs.astral.sh/uv/) (manages Python and the venv from
   `uv.lock`)
 - Docker (for Postgres)
-- An Anthropic API key
+- An Anthropic or OpenAI API key
 - A local clone of [mashpy](https://github.com/imsid/mashpy) — the source
   tree the Pilot agents operate on
 
@@ -26,8 +26,8 @@ docker compose up -d db              # Postgres only, published on 127.0.0.1:543
 cp .env.example .env
 ```
 
-In `.env`, set `ANTHROPIC_API_KEY` and uncomment the local-development
-block:
+In `.env`, set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` (Anthropic is
+preferred when both are set) and uncomment the local-development block:
 
 ```
 MASH_DATABASE_URL=postgresql://mash:mash@127.0.0.1:5433/mash_pilot

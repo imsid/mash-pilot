@@ -27,6 +27,7 @@ here, a terminal CLI — talk to compositions over plain HTTP + SSE.
 # 1. Start your store — one container, embedded Postgres included
 docker run -d --name pilot -p 8000:8000 \
   -e ANTHROPIC_API_KEY=sk-ant-... \
+  `# or instead: -e OPENAI_API_KEY=sk-... (Anthropic wins if both are set)` \
   -v pilot-data:/var/lib/pilot \
   ghcr.io/imsid/mash-pilot:latest
 
