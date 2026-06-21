@@ -220,7 +220,7 @@ def register_quiz_command(shell: Any) -> None:
             ctx.renderer.error("Usage: /quiz")
             return
 
-        run = ctx.client.run_workflow(QUIZ_WORKFLOW_ID)
+        run = ctx.client.run_workflow(QUIZ_WORKFLOW_ID, session_id=ctx.session_id)
         ctx.renderer.info(f"Workflow: {run.get('workflow_id') or QUIZ_WORKFLOW_ID}")
         run_id = str(run.get("run_id") or "")
         ctx.renderer.info(f"Run ID: {run_id}")

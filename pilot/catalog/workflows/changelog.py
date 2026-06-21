@@ -111,6 +111,7 @@ def register_changelog_command(shell: Any) -> None:
         run = ctx.client.run_workflow(
             CHANGELOG_WORKFLOW_ID,
             workflow_input={"commit_count": commit_count},
+            session_id=ctx.session_id,
         )
         ctx.renderer.info(f"Workflow: {run.get('workflow_id') or CHANGELOG_WORKFLOW_ID}")
         run_id = str(run.get("run_id") or "")
