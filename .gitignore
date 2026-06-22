@@ -6,4 +6,5 @@ build/
 .eggs/
 *.spec
 .env
-.pilot_remote_history
+.*_history
+.DS_Store
