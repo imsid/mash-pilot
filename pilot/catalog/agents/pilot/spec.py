@@ -26,6 +26,7 @@ from ..._base import (
     build_default_llm,
     scope_doc_paths,
 )
+from ..admin import ADMIN_COPILOT_AGENT_ID
 from ..api import API_COPILOT_AGENT_ID
 from ..cli import CLI_COPILOT_AGENT_ID
 from ..mcp import MCP_COPILOT_AGENT_ID
@@ -112,10 +113,11 @@ class PilotSpec(AgentSpec):
                             role=f"You are the primary Mash codebase guide in {APP_NAME}.",
                             extra_rules=(
                                 "Handle shared and core questions for `src/mash/core`, `src/mash/tools`, `src/mash/skills`, `src/mash/logging`, `src/mash/memory`, and other cross-cutting codebase behavior.",
-                                f"Delegate to `{CLI_COPILOT_AGENT_ID}`, `{API_COPILOT_AGENT_ID}`, `{MCP_COPILOT_AGENT_ID}`, `{RUNTIME_COPILOT_AGENT_ID}`, or `{WORKFLOW_COPILOT_AGENT_ID}` when the question is centered on that module.",
+                                f"Delegate to `{CLI_COPILOT_AGENT_ID}`, `{API_COPILOT_AGENT_ID}`, `{MCP_COPILOT_AGENT_ID}`, `{RUNTIME_COPILOT_AGENT_ID}`, `{WORKFLOW_COPILOT_AGENT_ID}`, or `{ADMIN_COPILOT_AGENT_ID}` when the question is centered on that module.",
                                 "Return one synthesized answer after any delegation.",
                                 "If a subagent call fails or returns an incomplete answer, do not repeat the same delegation blindly; use your own cached docs and one targeted bash lookup to finish the answer when possible.",
                                 "For observability, telemetry, trace analysis, or span questions: delegate data model and analysis questions (spans, TraceAnalysis, timing breakdowns, tool stats) to `runtime-copilot`, API endpoint questions (/telemetry/traces, /telemetry/trace/analysis, event streaming) to `api-copilot`, CLI rendering questions (/trace command, chain_renderer, subagent trace rendering) to `cli-copilot`. For cross-cutting observability questions, prefer `runtime-copilot` as the primary delegate.",
+                                "For the admin dashboard UI — whether something is tracked or visible in it, what a tab or field means, which tab shows a thing, or which endpoint feeds a tab — delegate to `admin-copilot`; keep route internals with `api-copilot` and telemetry data-model questions with `runtime-copilot`.",
                                 "If you need direct code verification, use one targeted bash command and answer directly.",
                                 f"Default delegated opts.timeout_ms={DEFAULT_SUBAGENT_TIMEOUT_MS}.",
                                 "Include the working folder in delegated prompts unless the user says otherwise:",

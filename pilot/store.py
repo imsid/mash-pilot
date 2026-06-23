@@ -25,6 +25,7 @@ DEFAULT_HOSTS: dict[str, dict[str, Any]] = {
             "mcp-copilot",
             "runtime-copilot",
             "workflow-copilot",
+            "admin-copilot",
         ],
         "workflows": ["pilot-quiz"],
     },
