@@ -208,7 +208,15 @@ llm = OpenAIProvider(app_id="my-agent", model="gpt-5")
 
 llm = GeminiProvider(app_id="my-agent")                             # Gemini
 llm = GeminiProvider(app_id="my-agent", model="gemini-2.5-pro")
+llm = GeminiProvider(app_id="my-agent", web_search=True)            # Gemini + native grounding
 ```
+
+`web_search=True` injects Gemini's native `google_search` grounding tool into
+every request, giving grounded responses from `GEMINI_API_KEY` alone — no
+`WebSearchProvider`, no MCP, no extra key. This is independent of any provider
+returned from `build_web_search()`: use `web_search=True` for Gemini-native
+grounding, or `ParallelSearchProvider` (see [Web Search](#web-search)) for the
+provider-agnostic `web_search`/`web_fetch` tools that work across any LLM.
 
 API keys are read from environment variables: `ANTHROPIC_API_KEY`,
 `OPENAI_API_KEY`, `GEMINI_API_KEY` (or `GOOGLE_API_KEY`). You can also pass
