@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from mash.cli.commands import Command
@@ -65,17 +66,28 @@ def changelog_workflow_payload(agent_id: str) -> dict[str, object]:
     }
 
 
-def _workflow_markdown(response_payload: dict[str, Any]) -> str:
-    structured_output = response_payload.get("structured_output")
-    if isinstance(structured_output, dict):
-        markdown = structured_output.get("markdown")
-        if isinstance(markdown, str) and markdown.strip():
-            return markdown
-    return str(response_payload.get("text") or "")
-
-
 def register_changelog_command(shell: Any) -> None:
     """Register Pilot's dynamic changelog workflow command on a Mash shell."""
+
+    def _render_changelog_structured_output(
+        _task_id: str, _agent_id: str, data: dict[str, Any]
+    ) -> None:
+        """Render the changelog task's structured_output as its markdown view.
+
+        Registered via Mash >= 0.11's structured-output renderer hook, so
+        `shell.render_structured_output` routes the `pilot-changelog` payload
+        here instead of dumping raw JSON. Falls back to JSON if the agent
+        omitted the markdown field.
+        """
+        markdown = data.get("markdown")
+        if isinstance(markdown, str) and markdown.strip():
+            shell.renderer.markdown(markdown)
+        else:
+            shell.renderer.markdown(f"```json\n{json.dumps(data, indent=2)}\n```")
+
+    shell.register_structured_output_renderer(
+        CHANGELOG_WORKFLOW_ID, _render_changelog_structured_output
+    )
 
     def changelog_command(ctx: Any, args: list[str]) -> None:
         if len(args) > 1:
@@ -155,13 +167,29 @@ def register_changelog_command(shell: Any) -> None:
         if final_payload is None:
             raise RuntimeError("workflow stream ended without a terminal event")
 
+        # Mash >= 0.11 carries the task's structured_output on the response;
+        # route it through the registered renderer (above). When it is absent,
+        # fall back to the unified assistant_blocks/text rendering.
         response_payload = final_payload.get("response")
-        if isinstance(response_payload, dict):
-            text = _workflow_markdown(response_payload)
+        structured_output = (
+            response_payload.get("structured_output")
+            if isinstance(response_payload, dict)
+            else None
+        )
+        if isinstance(structured_output, dict):
+            shell.render_structured_output(
+                CHANGELOG_WORKFLOW_ID,
+                str(final_payload.get("task_id") or CHANGELOG_TASK_ID),
+                str(final_payload.get("task_agent_id") or agent_id),
+                structured_output,
+            )
         else:
-            text = str(final_payload.get("text") or "")
-        if text:
-            ctx.renderer.markdown(text)
+            shell.render_final_response(
+                ctx,
+                response_payload,
+                str(final_payload.get("text") or ""),
+                shell.chain_renderer.take_streamed_text(),
+            )
 
     shell.register_command(
         Command(

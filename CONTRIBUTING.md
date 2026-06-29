@@ -49,8 +49,9 @@ characters.
 ### Run
 
 ```bash
-mash host serve --host-app pilot.spec:build_pool --port 8001
-``` 
+mash host serve --host-app pilot.spec:build_pool --port 8000
+```
+
 Then, in another terminal:
 
 ```bash
@@ -58,7 +59,9 @@ pilot browse                  # the pool + configured hosts
 pilot repl --host guide       # enter the default composition
 ```
 
-The CLI defaults to `http://127.0.0.1:8001`.
+`pilot` defaults to `http://127.0.0.1:8000`, so it connects with no extra
+flags. Serve on another port (`--port`) and point the CLI at it with
+`--api-base-url` or `PILOT_API_BASE_URL`.
 
 ## The Docker Image
 
@@ -84,10 +87,10 @@ commits.
 `GET /api/v1/health` reports readiness, useful as a probe if you put the
 container behind a reverse proxy or orchestrator.
 
-## Publishing an Agent to the Catalog
+## Adding an Agent to the Catalog
 
-Adding an agent to the store is adding a package under
-`pilot/catalog/agents/` and one entry to the `CATALOG` tuple.
+Adding an agent is adding a package under `pilot/catalog/agents/` and one
+entry to the `CATALOG` tuple.
 
 1. **Create the package.** A directory under `pilot/catalog/agents/<name>/`
    with a `spec.py` implementation and an `__init__.py` that re-exports the
@@ -103,10 +106,10 @@ Adding an agent to the store is adding a package under
    primary shows the MCP pattern (`build_mcp_servers`) and subagent
    delegation.
 
-2. **Write the listing carefully.** The `AgentMetadata` is both the store
-   listing `pilot browse` renders and the delegation directory a primary
-   reads when your agent serves as a subagent. Vague `usage_guidance`
-   produces vague routing.
+2. **Write the metadata carefully.** The `AgentMetadata` is both what
+   `pilot browse` renders and the delegation directory a primary reads when
+   your agent serves as a subagent. Vague `usage_guidance` produces vague
+   routing.
 
 3. **Register it.** Add one `CatalogEntry` to `CATALOG` in
    `pilot/catalog/__init__.py`.
@@ -114,15 +117,15 @@ Adding an agent to the store is adding a package under
 4. **Degrade gracefully.** If the agent needs credentials, register it
    unconditionally and gate the capability: return `[]` from
    `build_mcp_servers()` when unconfigured and let the system prompt explain
-   what to set (see the `pilot` primary). The catalog should always be fully
-   browsable.
+   what to set (see the `pilot` primary). Every agent should register
+   regardless of configuration.
 
 5. **Ship data files as package data.** Add globs to
    `[tool.setuptools.package-data]` in `pyproject.toml` (see the
    `pilot/skills` entries) so the Docker `pip install .` includes them.
 
 Rebuild the deployment (`docker compose build pilot && docker compose up -d`)
-and the new listing appears in `pilot browse`, ready to be composed into
+and the new agent appears in `pilot browse`, ready to be composed into
 hosts. Workflow definitions (like `pilot-quiz`) are registered post-build in
 `pilot/spec.py`; host configs attach them by id and the REPL enables the
 matching command (`/quiz`) only in hosts that do.
@@ -170,7 +173,7 @@ curl -fsSL https://raw.githubusercontent.com/imsid/mash-pilot/main/install.sh | 
 
 Pilot is a standard Mash application:
 
-- `pilot/catalog/` — The agent catalog: each package is one store listing
+- `pilot/catalog/` — The agent catalog: each package is one agent
   (`agents/` holds the `pilot` primary and its copilots; `workflows/` holds
   workflow-only agents), registered through the explicit `CATALOG` tuple in
   `catalog/__init__.py`
@@ -184,8 +187,8 @@ Pilot is a standard Mash application:
 - `pilot/prompt.py` — System prompt construction
 - `pilot/skills/` — Skill markdown files
 
-The deployment is a flat pool of seven agents — the `pilot` guide family (a
-primary plus five module copilots) and the `quiz-me` workflow agent — with
+The deployment is a flat pool of eight agents — the `pilot` guide family (a
+primary plus six module copilots) and the `quiz-me` workflow agent — with
 no built-in host compositions. Hosts are configuration: the CLI's config
 file holds them (seeded with the `guide` composition), and entering a REPL
 publishes them over the host
