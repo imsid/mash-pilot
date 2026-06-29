@@ -201,15 +201,20 @@ from mash.core.llm import AnthropicProvider, OpenAIProvider, GeminiProvider
 
 # Pick one:
 llm = AnthropicProvider(app_id="my-agent")                          # Claude
-llm = AnthropicProvider(app_id="my-agent", model="claude-sonnet-4-6-20250514")
+llm = AnthropicProvider(app_id="my-agent", model="claude-sonnet-4-6")
 
 llm = OpenAIProvider(app_id="my-agent")                             # GPT
-llm = OpenAIProvider(app_id="my-agent", model="gpt-5")
+llm = OpenAIProvider(app_id="my-agent", model="gpt-5")              # reasoning model
 
 llm = GeminiProvider(app_id="my-agent")                             # Gemini
-llm = GeminiProvider(app_id="my-agent", model="gemini-2.5-pro")
+llm = GeminiProvider(app_id="my-agent", model="gemini-3.5-pro")
 llm = GeminiProvider(app_id="my-agent", web_search=True)            # Gemini + native grounding
 ```
+
+OpenAI `gpt-5*` are reasoning models: they ignore `temperature` (the provider
+drops it), and the runtime reserves part of the output budget for hidden
+reasoning tokens — keep `AgentConfig.max_tokens` generous (OpenAI recommends
+≥ 25,000) or responses may truncate before the final answer.
 
 `web_search=True` injects Gemini's native `google_search` grounding tool into
 every request, giving grounded responses from `GEMINI_API_KEY` alone — no
@@ -419,6 +424,34 @@ Specs registered through `.workflow(...)` (or `pool.register_workflow_agent`)
 become **workflow-only agents**: full runtimes that execute workflow tasks
 but are hidden from public agent listings and can't be named in a host —
 primaries can't delegate to them and clients can't address them directly.
+
+### Typed task output
+
+A `TaskSpec` can pin a JSON-schema `structured_output`, so the task's final
+turn is validated and returned as a `structured_output` object on the
+`request.completed` event (alongside the usual `text`):
+
+```python
+TaskSpec(
+    task_id="summarize",
+    agent_spec=SummaryAgent(),
+    structured_output={
+        "title": "SummaryResult",
+        "type": "object",
+        "properties": {
+            "headline": {"type": "string"},
+            "bullets": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["headline", "bullets"],
+        "additionalProperties": False,
+    },
+)
+```
+
+This is the durable, workflow-level counterpart to the request-scoped
+[Structured Output](#structured-output) below; a CLI can register a renderer
+for the workflow id (`shell.register_structured_output_renderer`) to display
+the typed payload instead of raw JSON.
 
 ## Step 8: Run the Agent
 

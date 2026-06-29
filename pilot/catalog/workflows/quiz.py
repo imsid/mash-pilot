@@ -215,7 +215,7 @@ def register_quiz_command(shell: Any) -> None:
             ctx.renderer.info(f"Status: {run.get('status') or ''}")
             return
 
-        streamed_response_text: str | None = None
+        final_payload: dict[str, Any] | None = None
         pending_interaction: dict[str, Any] | None = None
         try:
             for event in ctx.client.stream_workflow_run(QUIZ_WORKFLOW_ID, run_id):
@@ -232,13 +232,6 @@ def register_quiz_command(shell: Any) -> None:
                         trace_label="Quiz",
                         agent_id=task_agent_id or None,
                     )
-                    if task_agent_id:
-                        streamed_text = shell.extract_streamed_response_text(
-                            payload,
-                            agent_id=task_agent_id,
-                        )
-                        if streamed_text:
-                            streamed_response_text = streamed_text
                     continue
 
                 if event_name == "request.interaction.create":
@@ -253,14 +246,7 @@ def register_quiz_command(shell: Any) -> None:
                     continue
 
                 if event_name == "request.completed":
-                    shell.chain_renderer.finish_trace()
-                    response_payload = payload.get("response")
-                    if isinstance(response_payload, dict):
-                        text = str(response_payload.get("text") or "")
-                    else:
-                        text = str(payload.get("text") or "")
-                    if text and text != streamed_response_text:
-                        ctx.renderer.markdown(text)
+                    final_payload = payload
                     break
 
                 if event_name == "request.error":
@@ -278,6 +264,17 @@ def register_quiz_command(shell: Any) -> None:
             _abort_quiz(ctx, pending_interaction, run_id)
         finally:
             shell.chain_renderer.finish_trace()
+
+        # Mash >= 0.12 unifies final-turn rendering: render thinking + text
+        # from assistant_blocks, de-duping any text already streamed live.
+        # Skipped on abort, where no request.completed event arrives.
+        if final_payload is not None:
+            shell.render_final_response(
+                ctx,
+                final_payload.get("response"),
+                str(final_payload.get("text") or ""),
+                shell.chain_renderer.take_streamed_text(),
+            )
 
     shell.register_command(
         Command(
